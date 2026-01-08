@@ -181,14 +181,45 @@ Terima kasih telah memesan travel di *Obie Travel*.
 ━━━━━━━━━━━━━━━
 ✅ Status: *LUNAS*
 
-Mohon siapkan tiket ini saat penjemputan.
+📎 *Tiket PDF terlampir di bawah pesan ini.*
+Mohon simpan tiket ini dan tunjukkan saat penjemputan.
 Terima kasih! 🙏`;
   };
 
-  const openWhatsApp = (booking: Booking) => {
-    const phone = formatPhoneForWhatsApp(booking.customer_phone);
-    const message = encodeURIComponent(generateWhatsAppMessage(booking));
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+  const handleSendTicketWhatsApp = (booking: Booking) => {
+    // Generate and download PDF first
+    const doc = generateTicketPdf({
+      orderId: booking.order_id,
+      customerName: booking.customer_name,
+      customerPhone: booking.customer_phone,
+      customerEmail: booking.customer_email,
+      routeFrom: booking.route_from,
+      routeTo: booking.route_to,
+      routeVia: booking.route_via,
+      travelDate: booking.travel_date,
+      pickupTime: booking.pickup_time,
+      pickupAddress: booking.pickup_address,
+      passengers: booking.passengers,
+      totalPrice: booking.total_price,
+      notes: booking.notes,
+      paymentStatus: 'paid',
+    }, { returnBlob: true });
+    
+    if (doc) {
+      // Download the PDF
+      doc.save(`Tiket-${booking.order_id}.pdf`);
+      
+      // Open WhatsApp with message
+      const phone = formatPhoneForWhatsApp(booking.customer_phone);
+      const message = encodeURIComponent(generateWhatsAppMessage(booking));
+      
+      // Small delay to ensure PDF download starts before opening WhatsApp
+      setTimeout(() => {
+        window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+      }, 500);
+      
+      toast.success('Tiket PDF telah diunduh. Silakan lampirkan ke chat WhatsApp.');
+    }
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -439,11 +470,11 @@ Terima kasih! 🙏`;
                           Cetak Tiket PDF
                         </Button>
                         <Button
-                          onClick={() => openWhatsApp(booking)}
+                          onClick={() => handleSendTicketWhatsApp(booking)}
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
                           <MessageCircle className="w-4 h-4 mr-2" />
-                          Hubungi via WhatsApp
+                          Kirim Tiket via WhatsApp
                         </Button>
                       </div>
                     )}

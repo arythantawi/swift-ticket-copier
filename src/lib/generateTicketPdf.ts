@@ -17,7 +17,7 @@ interface TicketData {
   paymentStatus?: string;
 }
 
-export const generateTicketPdf = (data: TicketData) => {
+export const generateTicketPdf = (data: TicketData, options?: { returnBlob?: boolean }): jsPDF | void => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -360,7 +360,10 @@ export const generateTicketPdf = (data: TicketData) => {
   doc.setFillColor(...gold);
   doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
   
-  // Save
+  // Save or return
+  if (options?.returnBlob) {
+    return doc;
+  }
   doc.save(`Tiket-${data.orderId}.pdf`);
 };
 
