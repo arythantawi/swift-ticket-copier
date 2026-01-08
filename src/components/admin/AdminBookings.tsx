@@ -1,0 +1,514 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Search, 
+  RefreshCw, 
+  Check, 
+  X, 
+  ExternalLink, 
+  Calendar, 
+  Users, 
+  MapPin, 
+  Phone,
+  Clock,
+  Filter,
+  MessageCircle,
+  Trash2,
+  Eye
+} from 'lucide-react';
+import { generateTicketPdf } from '@/lib/generateTicketPdf';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
+
+interface Booking {
+  id: string;
+  order_id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  pickup_address: string;
+  notes: string | null;
+  route_from: string;
+  route_to: string;
+  route_via: string | null;
+  pickup_time: string;
+  travel_date: string;
+  passengers: number;
+  total_price: number;
+  payment_status: string;
+  payment_proof_url: string | null;
+  payment_proof_drive_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AdminBookingsProps {
+  onStatsUpdate: (stats: {
+    total: number;
+    pending: number;
+    waitingVerification: number;
+    paid: number;
+  }) => void;
+}
+
+const AdminBookings = ({ onStatsUpdate }: AdminBookingsProps) => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  const fetchBookings = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      const bookingsData = data || [];
+      setBookings(bookingsData);
+      
+      onStatsUpdate({
+        total: bookingsData.length,
+        pending: bookingsData.filter(b => b.payment_status === 'pending').length,
+        waitingVerification: bookingsData.filter(b => b.payment_status === 'waiting_verification').length,
+        paid: bookingsData.filter(b => b.payment_status === 'paid').length,
+      });
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      toast.error('Gagal memuat data pemesanan');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const updatePaymentStatus = async (orderId: string, newStatus: string) => {
+    setIsUpdating(orderId);
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ payment_status: newStatus })
+        .eq('order_id', orderId);
+
+      if (error) throw error;
+      
+      toast.success(`Status berhasil diubah ke ${getStatusLabel(newStatus)}`);
+      fetchBookings();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Gagal mengubah status');
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Menunggu Pembayaran';
+      case 'waiting_verification': return 'Menunggu Verifikasi';
+      case 'paid': return 'Lunas';
+      case 'cancelled': return 'Dibatalkan';
+      default: return status;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Menunggu Pembayaran</Badge>;
+      case 'waiting_verification':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Menunggu Verifikasi</Badge>;
+      case 'paid':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Lunas</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Dibatalkan</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const formatPhoneForWhatsApp = (phone: string) => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '62' + cleaned.slice(1);
+    }
+    return cleaned;
+  };
+
+  const generateWhatsAppMessage = (booking: Booking) => {
+    const formattedPrice = formatPrice(booking.total_price);
+    const formattedDate = formatDate(booking.travel_date);
+    const route = booking.route_via 
+      ? `${booking.route_from} → ${booking.route_via} → ${booking.route_to}`
+      : `${booking.route_from} → ${booking.route_to}`;
+
+    return `Halo ${booking.customer_name},
+
+Terima kasih telah memesan travel di *Obie Travel*.
+
+*🎫 TIKET PERJALANAN ANDA*
+━━━━━━━━━━━━━━━
+📋 Order ID: ${booking.order_id}
+🛤️ Rute: ${route}
+📅 Tanggal: ${formattedDate}
+⏰ Jam Jemput: ${booking.pickup_time}
+📍 Alamat Jemput: ${booking.pickup_address}
+👥 Jumlah Penumpang: ${booking.passengers}
+💰 Total: ${formattedPrice}
+━━━━━━━━━━━━━━━
+✅ Status: *LUNAS*
+
+📎 *Tiket PDF terlampir di bawah pesan ini.*
+Mohon simpan tiket ini dan tunjukkan saat penjemputan.
+Terima kasih! 🙏`;
+  };
+
+  const handleSendTicketWhatsApp = (booking: Booking) => {
+    const doc = generateTicketPdf({
+      orderId: booking.order_id,
+      customerName: booking.customer_name,
+      customerPhone: booking.customer_phone,
+      customerEmail: booking.customer_email,
+      routeFrom: booking.route_from,
+      routeTo: booking.route_to,
+      routeVia: booking.route_via,
+      travelDate: booking.travel_date,
+      pickupTime: booking.pickup_time,
+      pickupAddress: booking.pickup_address,
+      passengers: booking.passengers,
+      totalPrice: booking.total_price,
+      notes: booking.notes,
+      paymentStatus: 'paid',
+    }, { returnBlob: true });
+    
+    if (doc) {
+      doc.save(`Tiket-${booking.order_id}.pdf`);
+      
+      const phone = formatPhoneForWhatsApp(booking.customer_phone);
+      const message = encodeURIComponent(generateWhatsAppMessage(booking));
+      
+      setTimeout(() => {
+        window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+      }, 500);
+      
+      toast.success('Tiket PDF telah diunduh. Silakan lampirkan ke chat WhatsApp.');
+    }
+  };
+
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = 
+      booking.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customer_phone.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || booking.payment_status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari Order ID, nama, atau telepon..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem value="pending">Menunggu Pembayaran</SelectItem>
+              <SelectItem value="waiting_verification">Menunggu Verifikasi</SelectItem>
+              <SelectItem value="paid">Lunas</SelectItem>
+              <SelectItem value="cancelled">Dibatalkan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={fetchBookings} variant="outline" size="icon">
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+
+      {/* Bookings List */}
+      {isLoading ? (
+        <div className="text-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-muted-foreground">Memuat data...</p>
+        </div>
+      ) : filteredBookings.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Tidak ada data pemesanan</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredBookings.map((booking) => (
+            <div key={booking.id} className="bg-card rounded-xl border border-border p-6">
+              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                {/* Left: Order Info */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Order ID</p>
+                      <p className="font-mono font-bold text-foreground">{booking.order_id}</p>
+                    </div>
+                    {getStatusBadge(booking.payment_status)}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-foreground">{booking.customer_name}</p>
+                          <p className="text-sm text-muted-foreground">{booking.passengers} penumpang</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <a href={`tel:${booking.customer_phone}`} className="text-primary hover:underline">
+                          {booking.customer_phone}
+                        </a>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-foreground">
+                          {booking.route_from} → {booking.route_via && `${booking.route_via} → `}{booking.route_to}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-foreground">{formatDate(booking.travel_date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-foreground">Jemput: {booking.pickup_time}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total</p>
+                      <p className="text-xl font-bold text-accent">{formatPrice(booking.total_price)}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Dibuat: {formatDateTime(booking.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: Actions */}
+                <div className="lg:w-56 space-y-2 lg:border-l lg:border-border lg:pl-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Detail
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Detail Pesanan</DialogTitle>
+                        <DialogDescription>
+                          {selectedBooking?.order_id}
+                        </DialogDescription>
+                      </DialogHeader>
+                      {selectedBooking && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Nama</p>
+                              <p className="font-medium">{selectedBooking.customer_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Telepon</p>
+                              <p className="font-medium">{selectedBooking.customer_phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Email</p>
+                              <p className="font-medium">{selectedBooking.customer_email || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Penumpang</p>
+                              <p className="font-medium">{selectedBooking.passengers}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-muted-foreground">Rute</p>
+                              <p className="font-medium">
+                                {selectedBooking.route_from} → {selectedBooking.route_via && `${selectedBooking.route_via} → `}{selectedBooking.route_to}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Tanggal</p>
+                              <p className="font-medium">{formatDate(selectedBooking.travel_date)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Jam Jemput</p>
+                              <p className="font-medium">{selectedBooking.pickup_time}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-muted-foreground">Alamat Jemput</p>
+                              <p className="font-medium">{selectedBooking.pickup_address}</p>
+                            </div>
+                            {selectedBooking.notes && (
+                              <div className="col-span-2">
+                                <p className="text-muted-foreground">Catatan</p>
+                                <p className="font-medium">{selectedBooking.notes}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-muted-foreground">Total</p>
+                              <p className="font-bold text-accent">{formatPrice(selectedBooking.total_price)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Status</p>
+                              {getStatusBadge(selectedBooking.payment_status)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+
+                  {booking.payment_proof_url && (
+                    <a
+                      href={booking.payment_proof_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm bg-secondary hover:bg-secondary/80 text-foreground rounded-lg transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Bukti Transfer
+                    </a>
+                  )}
+
+                  {booking.payment_status === 'waiting_verification' && (
+                    <>
+                      <Button
+                        onClick={() => updatePaymentStatus(booking.order_id, 'paid')}
+                        disabled={isUpdating === booking.order_id}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        size="sm"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Verifikasi
+                      </Button>
+                      <Button
+                        onClick={() => updatePaymentStatus(booking.order_id, 'pending')}
+                        disabled={isUpdating === booking.order_id}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Tolak
+                      </Button>
+                    </>
+                  )}
+
+                  {booking.payment_status === 'pending' && (
+                    <Button
+                      onClick={() => updatePaymentStatus(booking.order_id, 'cancelled')}
+                      disabled={isUpdating === booking.order_id}
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Batalkan
+                    </Button>
+                  )}
+
+                  {booking.payment_status === 'paid' && (
+                    <Button
+                      onClick={() => handleSendTicketWhatsApp(booking)}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Kirim Tiket
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminBookings;

@@ -80,6 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      schedules: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          pickup_time: string
+          price: number
+          route_from: string
+          route_to: string
+          route_via: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          pickup_time: string
+          price: number
+          route_from: string
+          route_to: string
+          route_via?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          pickup_time?: string
+          price?: number
+          route_from?: string
+          route_to?: string
+          route_via?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
