@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ChevronDown, MapPin } from 'lucide-react';
+import { ChevronDown, MapPin, ArrowRight } from 'lucide-react';
+import { getRoutePrice } from '@/lib/scheduleData';
 
 gsap.registerPlugin(ScrollTrigger);
+
+interface Route {
+  from: string;
+  to: string;
+  via?: string;
+}
 
 const routeCategories = [
   {
@@ -50,7 +58,24 @@ const routeCategories = [
 
 const AllRoutes = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
   const [openCategory, setOpenCategory] = useState<string | null>('Jawa - Bali');
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const handleSelectRoute = (route: Route) => {
+    const params = new URLSearchParams({ 
+      from: route.from, 
+      to: route.to,
+    });
+    navigate(`/search?${params.toString()}`);
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -126,24 +151,34 @@ const AllRoutes = () => {
 
               {openCategory === category.name && (
                 <div className="border-t border-border">
-                  {category.routes.map((route, idx) => (
-                    <div
-                      key={idx}
-                      className="p-5 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-foreground">{route.from}</span>
-                        {route.via && (
-                          <>
+                  {category.routes.map((route, idx) => {
+                    const price = getRoutePrice(route.from, route.to);
+                    return (
+                      <div
+                        key={idx}
+                        className="p-5 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors cursor-pointer"
+                        onClick={() => handleSelectRoute(route)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-foreground">{route.from}</span>
+                            {route.via && (
+                              <>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="text-sm text-muted-foreground">{route.via}</span>
+                              </>
+                            )}
                             <span className="text-muted-foreground">→</span>
-                            <span className="text-sm text-muted-foreground">{route.via}</span>
-                          </>
-                        )}
-                        <span className="text-muted-foreground">→</span>
-                        <span className="font-semibold text-foreground">{route.to}</span>
+                            <span className="font-semibold text-foreground">{route.to}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="font-bold text-primary">{formatPrice(price)}</span>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

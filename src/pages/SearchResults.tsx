@@ -27,6 +27,14 @@ const SearchResults = () => {
     });
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
   const handleBook = (schedule: Schedule) => {
     const params = new URLSearchParams({
       scheduleId: schedule.id,
@@ -116,12 +124,20 @@ const SearchResults = () => {
                         <span className="font-medium text-foreground">{schedule.to}</span>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => handleBook(schedule)}
-                      className="btn-gold"
-                    >
-                      Pesan Sekarang
-                    </Button>
+                    
+                    {/* Price & Book Button */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Harga/orang</p>
+                        <p className="text-xl font-bold text-primary">{formatPrice(schedule.price)}</p>
+                      </div>
+                      <Button 
+                        onClick={() => handleBook(schedule)}
+                        className="btn-gold"
+                      >
+                        Pesan Sekarang
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

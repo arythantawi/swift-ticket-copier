@@ -11,36 +11,7 @@ import PaymentUpload from '@/components/PaymentUpload';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { generateTicketPdf } from '@/lib/generateTicketPdf';
-
-// Price per passenger based on route (simplified)
-const PRICE_PER_PASSENGER: { [key: string]: number } = {
-  'Surabaya-Denpasar': 250000,
-  'Malang-Denpasar': 275000,
-  'Malang-Surabaya': 100000,
-  'Surabaya-Malang': 100000,
-  'Blitar-Surabaya': 125000,
-  'Surabaya-Blitar': 125000,
-  'Kediri-Surabaya': 125000,
-  'Surabaya-Kediri': 125000,
-  'Banyuwangi-Surabaya': 175000,
-  'Surabaya-Banyuwangi': 175000,
-  'Trenggalek-Surabaya': 150000,
-  'Surabaya-Trenggalek': 150000,
-  'Ponorogo-Surabaya': 150000,
-  'Surabaya-Ponorogo': 150000,
-  'Jember-Surabaya': 150000,
-  'Surabaya-Jember': 150000,
-  'Jakarta-Surabaya': 400000,
-  'Surabaya-Jakarta': 400000,
-  'Jogja-Surabaya': 200000,
-  'Surabaya-Jogja': 200000,
-  'default': 150000,
-};
-
-const getPrice = (from: string, to: string): number => {
-  const key = `${from}-${to}`;
-  return PRICE_PER_PASSENGER[key] || PRICE_PER_PASSENGER['default'];
-};
+import { getRoutePrice } from '@/lib/scheduleData';
 
 type BookingStep = 'form' | 'payment' | 'success';
 
@@ -59,7 +30,8 @@ const Booking = () => {
   const date = searchParams.get('date') || '';
   const passengers = parseInt(searchParams.get('passengers') || '1');
   
-  const pricePerPerson = getPrice(from, to);
+  // Get price from schedule data automatically
+  const pricePerPerson = getRoutePrice(from, to);
   const totalPrice = pricePerPerson * passengers;
 
   const [formData, setFormData] = useState({
