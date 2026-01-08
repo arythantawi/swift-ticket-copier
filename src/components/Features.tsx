@@ -1,40 +1,30 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Shield, Clock, MapPin, Headphones, CreditCard, Users } from 'lucide-react';
+import { MapPin, Calendar, Wallet, MousePointerClick, Car, Info } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
-    icon: Shield,
-    title: 'Aman & Terpercaya',
-    description: 'Armada terawat dengan sopir berpengalaman dan asuransi perjalanan.',
-  },
-  {
-    icon: Clock,
-    title: 'Jadwal Fleksibel',
-    description: 'Berbagai pilihan waktu keberangkatan sesuai kebutuhan Anda.',
-  },
-  {
     icon: MapPin,
-    title: 'Door to Door',
-    description: 'Layanan antar jemput dari lokasi Anda langsung ke tujuan.',
+    title: 'Door to Door Service',
+    description: 'Penjemputan dan pengantaran langsung ke alamat tujuan tanpa perlu transit yang merepotkan.',
   },
   {
-    icon: Headphones,
-    title: 'Layanan 24 Jam',
-    description: 'Tim customer service siap membantu kapan saja Anda butuhkan.',
+    icon: Calendar,
+    title: 'Berangkat Setiap Hari',
+    description: 'Jadwal keberangkatan tersedia setiap hari dengan pilihan jam yang fleksibel.',
   },
   {
-    icon: CreditCard,
-    title: 'Pembayaran Mudah',
-    description: 'Transfer bank dengan konfirmasi cepat dan aman.',
+    icon: Wallet,
+    title: 'Harga Terjangkau & Transparan',
+    description: 'Tarif kompetitif tanpa biaya tersembunyi, sesuai dengan kualitas layanan yang diberikan.',
   },
   {
-    icon: Users,
-    title: 'Grup & Keluarga',
-    description: 'Harga spesial untuk pemesanan rombongan dan keluarga.',
+    icon: MousePointerClick,
+    title: 'Pemesanan Lebih Mudah',
+    description: 'Proses pemesanan cepat, praktis, dan dapat dilakukan langsung melalui website.',
   },
 ];
 
@@ -63,6 +53,16 @@ const Features = () => {
         duration: 0.5,
         stagger: 0.1,
       });
+
+      gsap.from('.info-card', {
+        scrollTrigger: {
+          trigger: '.info-section',
+          start: 'top 85%',
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+      });
     }, sectionRef);
 
     return () => ctx.revert();
@@ -71,19 +71,21 @@ const Features = () => {
   return (
     <section ref={sectionRef} className="py-20 bg-background">
       <div className="container">
+        {/* Header */}
         <div className="text-center mb-12 feature-title">
           <span className="inline-block px-4 py-1.5 bg-accent/10 text-accent rounded-full text-sm font-medium mb-4">
-            Keunggulan Kami
+            Mengapa Memilih Kami?
           </span>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Mengapa Memilih Kami?
+            Keunggulan Layanan Kami
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Komitmen kami adalah memberikan pengalaman perjalanan terbaik untuk setiap pelanggan
+            Kami berkomitmen memberikan pengalaman perjalanan yang aman, nyaman, dan terpercaya untuk setiap pelanggan.
           </p>
         </div>
 
-        <div className="feature-grid grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Features Grid */}
+        <div className="feature-grid grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {features.map((feature, index) => (
             <div
               key={index}
@@ -100,6 +102,24 @@ const Features = () => {
               </p>
             </div>
           ))}
+        </div>
+
+        {/* Info Section */}
+        <div className="info-section bg-primary/5 rounded-2xl p-8 border border-primary/10">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Car className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-display text-xl font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Info className="w-5 h-5 text-primary" />
+                Informasi Layanan Area Surabaya
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Layanan Door to Door di Wilayah Surabaya:</strong> Kami melayani penjemputan dan pengantaran di seluruh area Surabaya yang dapat diakses kendaraan roda empat.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
