@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Ship, Utensils, UserCheck, CalendarDays, MapPinned, Check } from 'lucide-react';
+import { Ship, Utensils, UserCheck, CalendarDays, MapPinned } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -9,22 +9,27 @@ const facilities = [
   {
     icon: Ship,
     text: 'Sudah Termasuk Tiket Penyebrangan',
+    description: 'Tidak perlu repot beli tiket ferry terpisah',
   },
   {
     icon: Utensils,
     text: 'Free Makan 1x dan Snack',
+    description: 'Nikmati makanan gratis selama perjalanan',
   },
   {
     icon: UserCheck,
     text: 'Driver Berpengalaman',
+    description: 'Sopir profesional dan ramah',
   },
   {
     icon: CalendarDays,
     text: 'Berangkat Setiap Hari',
+    description: 'Jadwal fleksibel sesuai kebutuhan',
   },
   {
     icon: MapPinned,
     text: 'Door To Door Service',
+    description: 'Antar jemput langsung ke lokasi',
   },
 ];
 
@@ -33,16 +38,47 @@ const Facilities = () => {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from('.facility-item', {
+      // Animate title
+      gsap.from('.facilities-title', {
         scrollTrigger: {
-          trigger: '.facilities-list',
+          trigger: sectionRef.current,
+          start: 'top 80%',
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+      });
+
+      // Animate cards with stagger
+      gsap.from('.facility-card', {
+        scrollTrigger: {
+          trigger: '.facilities-grid',
           start: 'top 85%',
         },
-        x: -30,
+        y: 60,
         opacity: 0,
-        duration: 0.4,
-        stagger: 0.1,
+        duration: 0.6,
+        stagger: {
+          each: 0.1,
+          from: 'start',
+        },
+        ease: 'power2.out',
         clearProps: 'all',
+      });
+
+      // Animate icons with rotation
+      gsap.from('.facility-icon', {
+        scrollTrigger: {
+          trigger: '.facilities-grid',
+          start: 'top 85%',
+        },
+        scale: 0,
+        rotation: -180,
+        duration: 0.8,
+        stagger: 0.1,
+        ease: 'back.out(1.7)',
+        delay: 0.3,
       });
     }, sectionRef);
 
@@ -50,34 +86,45 @@ const Facilities = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-16 bg-primary">
-      <div className="container">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-8">
-            {/* Title */}
-            <div className="flex-shrink-0">
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground border-b-4 border-primary-foreground/30 pb-2">
-                FASILITAS :
-              </h2>
-            </div>
+    <section ref={sectionRef} className="py-20 bg-gradient-to-br from-primary via-primary to-primary/90 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      </div>
 
-            {/* Facilities List */}
-            <div className="facilities-list flex-1">
-              <ul className="space-y-3">
-                {facilities.map((facility, index) => (
-                  <li
-                    key={index}
-                    className="facility-item flex items-center gap-3 text-primary-foreground"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />
-                    </div>
-                    <span className="text-lg font-medium">{facility.text}</span>
-                  </li>
-                ))}
-              </ul>
+      <div className="container relative z-10">
+        {/* Header */}
+        <div className="facilities-title text-center mb-14">
+          <span className="inline-block px-5 py-2 bg-white/10 backdrop-blur-sm text-primary-foreground rounded-full text-sm font-semibold mb-4 border border-white/20">
+            Apa yang Anda Dapatkan
+          </span>
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-primary-foreground mb-4">
+            Fasilitas Lengkap
+          </h2>
+          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg">
+            Nikmati berbagai fasilitas premium yang sudah termasuk dalam harga tiket
+          </p>
+        </div>
+
+        {/* Facilities Grid */}
+        <div className="facilities-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+          {facilities.map((facility, index) => (
+            <div
+              key={index}
+              className="facility-card group bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+            >
+              <div className="facility-icon w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/20 flex items-center justify-center group-hover:bg-white group-hover:scale-110 transition-all duration-300">
+                <facility.icon className="w-8 h-8 text-primary-foreground group-hover:text-primary transition-colors duration-300" strokeWidth={1.5} />
+              </div>
+              <h3 className="font-display text-sm md:text-base font-bold text-primary-foreground text-center mb-2 leading-tight">
+                {facility.text}
+              </h3>
+              <p className="text-primary-foreground/60 text-xs text-center hidden md:block">
+                {facility.description}
+              </p>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
