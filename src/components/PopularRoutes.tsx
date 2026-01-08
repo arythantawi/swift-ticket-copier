@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight, Clock, MapPin } from 'lucide-react';
+import { ArrowRight, MapPin } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -10,8 +10,6 @@ const routes = [
     id: 1,
     from: 'Surabaya',
     to: 'Denpasar',
-    duration: '8-10 jam',
-    schedules: ['16.00', '19.00', '20.00'],
     price: 'Rp 250.000',
     popular: true,
   },
@@ -19,8 +17,6 @@ const routes = [
     id: 2,
     from: 'Malang',
     to: 'Denpasar',
-    duration: '9-11 jam',
-    schedules: ['16.00', '19.00', '20.00'],
     price: 'Rp 275.000',
     popular: true,
   },
@@ -28,8 +24,6 @@ const routes = [
     id: 3,
     from: 'Surabaya',
     to: 'Jakarta',
-    duration: '12-14 jam',
-    schedules: ['18.00', '20.00', '22.00'],
     price: 'Rp 350.000',
     popular: true,
   },
@@ -37,8 +31,6 @@ const routes = [
     id: 4,
     from: 'Surabaya',
     to: 'Jogja',
-    duration: '6-8 jam',
-    schedules: ['10.00', '13.00', '16.00', '19.00', '20.00'],
     price: 'Rp 200.000',
     popular: false,
   },
@@ -46,8 +38,6 @@ const routes = [
     id: 5,
     from: 'Malang',
     to: 'Surabaya',
-    duration: '2-3 jam',
-    schedules: ['01.00', '05.00', '10.00'],
     price: 'Rp 75.000',
     popular: false,
   },
@@ -55,8 +45,6 @@ const routes = [
     id: 6,
     from: 'Banyuwangi',
     to: 'Surabaya',
-    duration: '5-6 jam',
-    schedules: ['17.00', '20.00'],
     price: 'Rp 150.000',
     popular: false,
   },
@@ -117,7 +105,7 @@ const PopularRoutes = () => {
                 </div>
               )}
               
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-5">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                     <MapPin className="w-4 h-4 text-primary" />
@@ -131,19 +119,6 @@ const PopularRoutes = () => {
                     {route.to}
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                <Clock className="w-4 h-4" />
-                <span>Estimasi {route.duration}</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-5">
-                {route.schedules.map((time) => (
-                  <span key={time} className="schedule-badge">
-                    {time}
-                  </span>
-                ))}
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
