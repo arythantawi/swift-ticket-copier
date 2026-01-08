@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ChevronDown, Clock, MapPin } from 'lucide-react';
+import { ChevronDown, MapPin } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -9,41 +9,41 @@ const routeCategories = [
   {
     name: 'Jawa - Bali',
     routes: [
-      { from: 'Surabaya', to: 'Denpasar', schedules: ['16.00', '19.00', '20.00'] },
-      { from: 'Malang', to: 'Denpasar', schedules: ['16.00', '19.00', '20.00'] },
+      { from: 'Surabaya', to: 'Denpasar' },
+      { from: 'Malang', to: 'Denpasar' },
     ],
   },
   {
     name: 'Jawa Timur',
     routes: [
-      { from: 'Malang', to: 'Surabaya', schedules: ['01.00', '05.00', '10.00'] },
-      { from: 'Surabaya', to: 'Malang', schedules: ['10.00', '13.00', '16.00', '19.00'] },
-      { from: 'Blitar', to: 'Surabaya', schedules: ['01.00', '05.00', '10.00'] },
-      { from: 'Surabaya', to: 'Blitar', schedules: ['08.00', '10.00', '13.00', '16.00', '19.00'] },
-      { from: 'Kediri', to: 'Surabaya', schedules: ['01.00', '05.00', '08.00', '10.00'] },
-      { from: 'Surabaya', to: 'Kediri', schedules: ['08.00', '10.00', '13.00', '16.00', '19.00'] },
-      { from: 'Banyuwangi', to: 'Surabaya', schedules: ['17.00', '20.00'] },
-      { from: 'Surabaya', to: 'Banyuwangi', schedules: ['16.00', '19.00', '21.00'] },
-      { from: 'Trenggalek', to: 'Surabaya', schedules: ['07.00', '10.00'] },
-      { from: 'Surabaya', to: 'Trenggalek', schedules: ['10.00', '13.00', '16.00', '19.00', '21.00'] },
-      { from: 'Ponorogo', to: 'Surabaya', via: 'Madiun', schedules: ['01.00', '05.00', '08.00', '10.00'] },
-      { from: 'Surabaya', to: 'Ponorogo', via: 'Madiun', schedules: ['10.00', '13.00', '16.00', '19.00'] },
-      { from: 'Jember', to: 'Surabaya', via: 'Lumajang', schedules: ['20.00', '01.00', '05.00', '10.00'] },
-      { from: 'Surabaya', to: 'Jember', via: 'Lumajang', schedules: ['10.00', '13.00', '16.00', '19.00'] },
+      { from: 'Malang', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Malang' },
+      { from: 'Blitar', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Blitar' },
+      { from: 'Kediri', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Kediri' },
+      { from: 'Banyuwangi', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Banyuwangi' },
+      { from: 'Trenggalek', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Trenggalek' },
+      { from: 'Ponorogo', to: 'Surabaya', via: 'Madiun' },
+      { from: 'Surabaya', to: 'Ponorogo', via: 'Madiun' },
+      { from: 'Jember', to: 'Surabaya', via: 'Lumajang' },
+      { from: 'Surabaya', to: 'Jember', via: 'Lumajang' },
     ],
   },
   {
     name: 'Jawa - Jakarta',
     routes: [
-      { from: 'Jakarta', to: 'Surabaya', schedules: ['16.00', '21.00', '22.00'] },
-      { from: 'Surabaya', to: 'Jakarta', schedules: ['18.00', '20.00', '22.00'] },
+      { from: 'Jakarta', to: 'Surabaya' },
+      { from: 'Surabaya', to: 'Jakarta' },
     ],
   },
   {
     name: 'Jawa Tengah - DIY',
     routes: [
-      { from: 'Jogja', to: 'Surabaya', via: 'Solo', schedules: ['18.00', '20.00', '21.00'] },
-      { from: 'Surabaya', to: 'Jogja', via: 'Solo', schedules: ['10.00', '13.00', '16.00', '19.00', '20.00'] },
+      { from: 'Jogja', to: 'Surabaya', via: 'Solo' },
+      { from: 'Surabaya', to: 'Jogja', via: 'Solo' },
     ],
   },
 ];
@@ -131,29 +131,16 @@ const AllRoutes = () => {
                       key={idx}
                       className="p-5 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors"
                     >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-foreground">{route.from}</span>
-                          {route.via && (
-                            <>
-                              <span className="text-muted-foreground">→</span>
-                              <span className="text-sm text-muted-foreground">{route.via}</span>
-                            </>
-                          )}
-                          <span className="text-muted-foreground">→</span>
-                          <span className="font-semibold text-foreground">{route.to}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {route.schedules.map((time) => (
-                            <span
-                              key={time}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full"
-                            >
-                              <Clock className="w-3 h-3" />
-                              {time}
-                            </span>
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-foreground">{route.from}</span>
+                        {route.via && (
+                          <>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="text-sm text-muted-foreground">{route.via}</span>
+                          </>
+                        )}
+                        <span className="text-muted-foreground">→</span>
+                        <span className="font-semibold text-foreground">{route.to}</span>
                       </div>
                     </div>
                   ))}
