@@ -17,8 +17,10 @@ import {
   Wallet,
   Car,
   CircleDollarSign,
-  Calendar
+  Calendar,
+  FileDown
 } from 'lucide-react';
+import { generateOperationPdf } from '@/lib/generateOperationPdf';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -755,8 +757,16 @@ const AdminOperations = () => {
                     )}
                   </div>
 
-                  {/* Actions */}
                   <div className="flex lg:flex-col gap-2 lg:border-l lg:border-border lg:pl-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateOperationPdf(trip)}
+                      className="text-primary"
+                    >
+                      <FileDown className="w-4 h-4 mr-1" />
+                      PDF
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
