@@ -3,14 +3,14 @@ import {
   LayoutDashboard,
   Calendar,
   ShoppingCart,
-  BarChart3,
-  Settings,
+  Truck,
   LogOut
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import AdminBookings from '@/components/admin/AdminBookings';
 import AdminSchedules from '@/components/admin/AdminSchedules';
+import AdminOperations from '@/components/admin/AdminOperations';
 
 const Admin = () => {
   const [stats, setStats] = useState({
@@ -67,14 +67,18 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="bookings" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
-              Pesanan
+              <span className="hidden sm:inline">Pesanan</span>
             </TabsTrigger>
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Jadwal
+              <span className="hidden sm:inline">Jadwal</span>
+            </TabsTrigger>
+            <TabsTrigger value="operations" className="flex items-center gap-2">
+              <Truck className="w-4 h-4" />
+              <span className="hidden sm:inline">Operasional</span>
             </TabsTrigger>
           </TabsList>
 
@@ -84,6 +88,10 @@ const Admin = () => {
 
           <TabsContent value="schedules">
             <AdminSchedules />
+          </TabsContent>
+
+          <TabsContent value="operations">
+            <AdminOperations />
           </TabsContent>
         </Tabs>
       </main>

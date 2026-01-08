@@ -119,6 +119,84 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_operations: {
+        Row: {
+          created_at: string
+          driver_name: string | null
+          expense_driver_commission: number
+          expense_driver_meals: number
+          expense_ferry: number
+          expense_fuel: number
+          expense_meals: number
+          expense_other: number
+          expense_parking: number
+          expense_snack: number
+          expense_toll: number
+          id: string
+          income_other: number
+          income_tickets: number
+          notes: string | null
+          pickup_time: string
+          route_from: string
+          route_to: string
+          route_via: string | null
+          total_passengers: number
+          trip_date: string
+          updated_at: string
+          vehicle_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          driver_name?: string | null
+          expense_driver_commission?: number
+          expense_driver_meals?: number
+          expense_ferry?: number
+          expense_fuel?: number
+          expense_meals?: number
+          expense_other?: number
+          expense_parking?: number
+          expense_snack?: number
+          expense_toll?: number
+          id?: string
+          income_other?: number
+          income_tickets?: number
+          notes?: string | null
+          pickup_time: string
+          route_from: string
+          route_to: string
+          route_via?: string | null
+          total_passengers?: number
+          trip_date: string
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          driver_name?: string | null
+          expense_driver_commission?: number
+          expense_driver_meals?: number
+          expense_ferry?: number
+          expense_fuel?: number
+          expense_meals?: number
+          expense_other?: number
+          expense_parking?: number
+          expense_snack?: number
+          expense_toll?: number
+          id?: string
+          income_other?: number
+          income_tickets?: number
+          notes?: string | null
+          pickup_time?: string
+          route_from?: string
+          route_to?: string
+          route_via?: string | null
+          total_passengers?: number
+          trip_date?: string
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
