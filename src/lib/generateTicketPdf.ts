@@ -19,121 +19,201 @@ interface TicketData {
 export const generateTicketPdf = (data: TicketData) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
   
   // Colors
-  const primaryColor: [number, number, number] = [212, 175, 55]; // Gold
-  const darkColor: [number, number, number] = [30, 30, 30];
-  const grayColor: [number, number, number] = [120, 120, 120];
+  const gold: [number, number, number] = [180, 142, 38];
+  const darkGold: [number, number, number] = [140, 110, 30];
+  const black: [number, number, number] = [20, 20, 20];
+  const darkGray: [number, number, number] = [60, 60, 60];
+  const gray: [number, number, number] = [120, 120, 120];
+  const lightGray: [number, number, number] = [240, 240, 240];
+  const white: [number, number, number] = [255, 255, 255];
+  const green: [number, number, number] = [22, 163, 74];
   
-  // Header background
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 50, 'F');
+  // Helper functions
+  const drawLine = (y: number, color: [number, number, number] = lightGray) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+  };
   
-  // Company name
-  doc.setTextColor(255, 255, 255);
+  const drawDashedLine = (y: number) => {
+    doc.setDrawColor(...gray);
+    doc.setLineWidth(0.3);
+    for (let x = margin; x < pageWidth - margin; x += 4) {
+      doc.line(x, y, x + 2, y);
+    }
+  };
+
+  // === HEADER SECTION ===
+  // Top accent bar
+  doc.setFillColor(...gold);
+  doc.rect(0, 0, pageWidth, 8, 'F');
+  
+  // Company branding area
+  let y = 25;
+  
+  // Company name with elegant styling
+  doc.setTextColor(...black);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TRAVEL EXPRESS', margin, y);
+  
+  // Tagline
+  doc.setTextColor(...gray);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Perjalanan Nyaman, Harga Terjangkau', margin, y + 7);
+  
+  // Invoice label on right
+  doc.setTextColor(...gold);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('TRAVEL TICKET', pageWidth / 2, 25, { align: 'center' });
+  doc.text('INVOICE', pageWidth - margin, y, { align: 'right' });
   
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text('E-Ticket / Invoice', pageWidth / 2, 35, { align: 'center' });
-  
-  // Order ID Box
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(15, 60, pageWidth - 30, 25, 3, 3, 'F');
-  
-  doc.setTextColor(...darkColor);
-  doc.setFontSize(10);
-  doc.text('Order ID:', 25, 72);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(data.orderId, 25, 80);
-  
-  // Status LUNAS
-  doc.setFillColor(34, 197, 94); // Green
-  doc.roundedRect(pageWidth - 55, 65, 40, 15, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('LUNAS', pageWidth - 35, 75, { align: 'center' });
-  
-  let yPos = 100;
-  
-  // Customer Info Section
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('INFORMASI PENUMPANG', 15, yPos);
-  
-  yPos += 10;
-  doc.setDrawColor(220, 220, 220);
-  doc.line(15, yPos, pageWidth - 15, yPos);
-  
-  yPos += 10;
-  doc.setTextColor(...grayColor);
+  // Document type
+  doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Nama', 15, yPos);
-  doc.text('No. Telepon', 100, yPos);
+  doc.text('E-Ticket & Bukti Pembayaran', pageWidth - margin, y + 7, { align: 'right' });
   
-  yPos += 6;
-  doc.setTextColor(...darkColor);
+  y = 50;
+  drawLine(y, gold);
+  
+  // === ORDER INFO BAR ===
+  y += 12;
+  
+  // Order ID
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('NO. ORDER', margin, y);
+  doc.text('TANGGAL CETAK', pageWidth / 2, y);
+  doc.text('STATUS', pageWidth - margin - 30, y);
+  
+  y += 6;
+  doc.setTextColor(...black);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.orderId, margin, y);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }), pageWidth / 2, y);
+  
+  // Status badge
+  doc.setFillColor(...green);
+  doc.roundedRect(pageWidth - margin - 32, y - 5, 32, 8, 2, 2, 'F');
+  doc.setTextColor(...white);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LUNAS', pageWidth - margin - 16, y, { align: 'center' });
+  
+  y += 15;
+  drawLine(y);
+  
+  // === CUSTOMER & ROUTE INFO (Two columns) ===
+  y += 15;
+  const colWidth = (contentWidth - 15) / 2;
+  
+  // Left column - Customer Info
+  doc.setFillColor(...lightGray);
+  doc.roundedRect(margin, y - 5, colWidth, 55, 3, 3, 'F');
+  
+  doc.setTextColor(...gold);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INFORMASI PENUMPANG', margin + 10, y + 5);
+  
+  doc.setTextColor(...black);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(data.customerName, 15, yPos);
-  doc.text(data.customerPhone, 100, yPos);
+  doc.text(data.customerName, margin + 10, y + 18);
+  
+  doc.setTextColor(...darkGray);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(data.customerPhone, margin + 10, y + 27);
   
   if (data.customerEmail) {
-    yPos += 10;
-    doc.setTextColor(...grayColor);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Email', 15, yPos);
-    yPos += 6;
-    doc.setTextColor(...darkColor);
-    doc.setFontSize(11);
-    doc.text(data.customerEmail, 15, yPos);
+    doc.text(data.customerEmail, margin + 10, y + 35);
   }
   
-  // Route Section
-  yPos += 20;
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DETAIL PERJALANAN', 15, yPos);
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.text(`${data.passengers} Penumpang`, margin + 10, y + 45);
   
-  yPos += 10;
-  doc.setDrawColor(220, 220, 220);
-  doc.line(15, yPos, pageWidth - 15, yPos);
+  // Right column - Route Info
+  const rightColX = margin + colWidth + 15;
+  doc.setFillColor(...lightGray);
+  doc.roundedRect(rightColX, y - 5, colWidth, 55, 3, 3, 'F');
   
-  // Route box
-  yPos += 10;
-  doc.setFillColor(250, 250, 250);
-  doc.roundedRect(15, yPos, pageWidth - 30, 30, 3, 3, 'F');
-  
-  const routeText = data.routeVia 
-    ? `${data.routeFrom}  →  ${data.routeVia}  →  ${data.routeTo}`
-    : `${data.routeFrom}  →  ${data.routeTo}`;
-  
-  doc.setTextColor(...darkColor);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(routeText, pageWidth / 2, yPos + 18, { align: 'center' });
-  
-  yPos += 45;
-  
-  // Date & Time
-  doc.setTextColor(...grayColor);
+  doc.setTextColor(...gold);
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Tanggal Keberangkatan', 15, yPos);
-  doc.text('Jam Penjemputan', 100, yPos);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RUTE PERJALANAN', rightColX + 10, y + 5);
   
-  yPos += 6;
-  doc.setTextColor(...darkColor);
+  // From
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.text('DARI', rightColX + 10, y + 16);
+  doc.setTextColor(...black);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
+  doc.text(data.routeFrom, rightColX + 10, y + 24);
+  
+  // Via (if exists)
+  if (data.routeVia) {
+    doc.setTextColor(...gray);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('VIA', rightColX + 10, y + 32);
+    doc.setTextColor(...darkGray);
+    doc.setFontSize(9);
+    doc.text(data.routeVia, rightColX + 10, y + 39);
+  }
+  
+  // To
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TUJUAN', rightColX + colWidth / 2, y + 16);
+  doc.setTextColor(...black);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.routeTo, rightColX + colWidth / 2, y + 24);
+  
+  y += 60;
+  
+  // === TRAVEL DETAILS ===
+  y += 10;
+  doc.setTextColor(...gold);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETAIL KEBERANGKATAN', margin, y);
+  
+  y += 10;
+  
+  // Date and Time boxes
+  const boxWidth = (contentWidth - 10) / 2;
+  
+  // Date box
+  doc.setFillColor(...white);
+  doc.setDrawColor(...lightGray);
+  doc.setLineWidth(1);
+  doc.roundedRect(margin, y, boxWidth, 28, 3, 3, 'FD');
+  
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TANGGAL KEBERANGKATAN', margin + 10, y + 10);
   
   const formattedDate = new Date(data.travelDate).toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -141,80 +221,132 @@ export const generateTicketPdf = (data: TicketData) => {
     month: 'long',
     year: 'numeric'
   });
-  doc.text(formattedDate, 15, yPos);
-  doc.text(data.pickupTime, 100, yPos);
-  
-  yPos += 12;
-  doc.setTextColor(...grayColor);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Jumlah Penumpang', 15, yPos);
-  
-  yPos += 6;
-  doc.setTextColor(...darkColor);
+  doc.setTextColor(...black);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${data.passengers} orang`, 15, yPos);
+  doc.text(formattedDate, margin + 10, y + 21);
+  
+  // Time box
+  doc.roundedRect(margin + boxWidth + 10, y, boxWidth, 28, 3, 3, 'FD');
+  
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('JAM PENJEMPUTAN', margin + boxWidth + 20, y + 10);
+  
+  doc.setTextColor(...black);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.pickupTime, margin + boxWidth + 20, y + 22);
+  
+  y += 38;
   
   // Pickup Address
-  yPos += 12;
-  doc.setTextColor(...grayColor);
-  doc.setFontSize(9);
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Alamat Penjemputan', 15, yPos);
+  doc.text('ALAMAT PENJEMPUTAN', margin, y);
   
-  yPos += 6;
-  doc.setTextColor(...darkColor);
+  y += 8;
+  doc.setTextColor(...black);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const addressLines = doc.splitTextToSize(data.pickupAddress, pageWidth - 30);
-  doc.text(addressLines, 15, yPos);
-  yPos += addressLines.length * 5;
+  const addressLines = doc.splitTextToSize(data.pickupAddress, contentWidth);
+  doc.text(addressLines, margin, y);
+  y += addressLines.length * 5 + 5;
   
-  // Notes if any
+  // Notes
   if (data.notes) {
-    yPos += 8;
-    doc.setTextColor(...grayColor);
-    doc.setFontSize(9);
-    doc.text('Catatan', 15, yPos);
+    y += 5;
+    doc.setTextColor(...gray);
+    doc.setFontSize(8);
+    doc.text('CATATAN', margin, y);
     
-    yPos += 6;
-    doc.setTextColor(...darkColor);
-    doc.setFontSize(10);
-    const notesLines = doc.splitTextToSize(data.notes, pageWidth - 30);
-    doc.text(notesLines, 15, yPos);
-    yPos += notesLines.length * 5;
+    y += 8;
+    doc.setTextColor(...darkGray);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    const notesLines = doc.splitTextToSize(data.notes, contentWidth);
+    doc.text(notesLines, margin, y);
+    y += notesLines.length * 5;
   }
   
-  // Total Price Box
-  yPos += 15;
-  doc.setFillColor(...primaryColor);
-  doc.roundedRect(15, yPos, pageWidth - 30, 30, 3, 3, 'F');
+  // === PAYMENT SUMMARY ===
+  y += 15;
+  drawDashedLine(y);
+  y += 15;
   
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...gold);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RINCIAN PEMBAYARAN', margin, y);
+  
+  y += 12;
+  
+  // Price breakdown
+  const pricePerPerson = data.totalPrice / data.passengers;
+  
+  doc.setTextColor(...darkGray);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Harga per penumpang`, margin, y);
+  doc.text(formatCurrency(pricePerPerson), pageWidth - margin, y, { align: 'right' });
+  
+  y += 8;
+  doc.text(`Jumlah penumpang`, margin, y);
+  doc.text(`× ${data.passengers} orang`, pageWidth - margin, y, { align: 'right' });
+  
+  y += 12;
+  drawLine(y, gray);
+  y += 12;
+  
+  // Total
+  doc.setFillColor(...gold);
+  doc.roundedRect(margin, y - 5, contentWidth, 25, 3, 3, 'F');
+  
+  doc.setTextColor(...white);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('TOTAL PEMBAYARAN', 25, yPos + 12);
-  
-  const formattedPrice = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(data.totalPrice);
+  doc.text('TOTAL PEMBAYARAN', margin + 15, y + 8);
   
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(formattedPrice, pageWidth - 25, yPos + 20, { align: 'right' });
+  doc.text(formatCurrency(data.totalPrice), pageWidth - margin - 15, y + 10, { align: 'right' });
   
-  // Footer
-  const footerY = 270;
-  doc.setTextColor(...grayColor);
-  doc.setFontSize(8);
+  // === FOOTER ===
+  const footerY = pageHeight - 30;
+  
+  // Divider
+  drawLine(footerY - 10, lightGray);
+  
+  // Terms
+  doc.setTextColor(...gray);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text('Tiket ini sah sebagai bukti pemesanan yang telah dibayar.', pageWidth / 2, footerY, { align: 'center' });
-  doc.text('Harap tunjukkan tiket ini kepada driver saat penjemputan.', pageWidth / 2, footerY + 5, { align: 'center' });
-  doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, pageWidth / 2, footerY + 12, { align: 'center' });
   
-  // Save the PDF
+  const terms = [
+    '• Tiket ini sah sebagai bukti pemesanan dan pembayaran yang telah diverifikasi.',
+    '• Harap tunjukkan tiket ini (cetak/digital) kepada driver saat penjemputan.',
+    '• Pastikan berada di lokasi penjemputan 10 menit sebelum waktu yang ditentukan.',
+    '• Untuk pertanyaan atau perubahan jadwal, hubungi customer service kami.'
+  ];
+  
+  terms.forEach((term, i) => {
+    doc.text(term, margin, footerY + (i * 5));
+  });
+  
+  // Bottom bar
+  doc.setFillColor(...gold);
+  doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+  
+  // Save
   doc.save(`Tiket-${data.orderId}.pdf`);
+};
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
 };
