@@ -33,6 +33,13 @@ const Booking = () => {
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [isOutsideServiceArea, setIsOutsideServiceArea] = useState(false);
   
+  // Dropoff GPS states
+  const [dropoffAddressMode, setDropoffAddressMode] = useState<AddressMode>('manual');
+  const [isGettingDropoffLocation, setIsGettingDropoffLocation] = useState(false);
+  const [dropoffGpsCoords, setDropoffGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isEditingDropoffGpsAddress, setIsEditingDropoffGpsAddress] = useState(false);
+  const [dropoffAdditionalDetails, setDropoffAdditionalDetails] = useState('');
+  
   // Surabaya service area boundaries (approximate)
   const SURABAYA_BOUNDS = {
     north: -7.15,  // Batas utara
@@ -284,6 +291,134 @@ const Booking = () => {
     if (mode === 'manual') {
       setFormData(prev => ({ ...prev, pickupAddress: '' }));
       setGpsCoords(null);
+    }
+  };
+
+  // Handle dropoff marker drag to update location
+  const handleDropoffMarkerDrag = async (lat: number, lng: number) => {
+    setDropoffGpsCoords({ lat, lng });
+    
+    toast.info('Memperbarui alamat pengantaran...');
+    const address = await reverseGeocode(lat, lng);
+    const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+    
+    let locationText: string;
+    if (address) {
+      locationText = `📍 ${address}\n\n📐 Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n✏️ Lokasi dikoreksi manual\n🔗 ${mapsLink}`;
+    } else {
+      locationText = `📍 Lokasi GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n✏️ Lokasi dikoreksi manual\n🔗 ${mapsLink}`;
+    }
+    
+    // Preserve additional details if any
+    if (dropoffAdditionalDetails.trim()) {
+      locationText += `\n\n🏠 Detail: ${dropoffAdditionalDetails.trim()}`;
+    }
+    
+    setFormData(prev => ({ ...prev, dropoffAddress: locationText }));
+    toast.success('Lokasi pengantaran berhasil diperbarui!');
+  };
+
+  const handleGetDropoffLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Browser Anda tidak mendukung GPS');
+      return;
+    }
+
+    setIsGettingDropoffLocation(true);
+    toast.info('Mencari lokasi pengantaran...');
+
+    let bestPosition: GeolocationPosition | null = null;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const processDropoffLocation = async (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords;
+      const finalAccuracy = Math.round(position.coords.accuracy);
+      
+      setDropoffGpsCoords({ lat: latitude, lng: longitude });
+      
+      // Get address from coordinates
+      toast.info('Mendapatkan alamat pengantaran...');
+      const address = await reverseGeocode(latitude, longitude);
+      
+      // Create Google Maps link for the location
+      const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+      
+      let locationText: string;
+      if (address) {
+        locationText = `📍 ${address}\n\n📐 Koordinat: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n📏 Akurasi GPS: ±${finalAccuracy} meter\n🔗 ${mapsLink}`;
+      } else {
+        locationText = `📍 Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n📏 Akurasi: ±${finalAccuracy} meter\n🔗 ${mapsLink}`;
+      }
+      
+      setFormData(prev => ({ ...prev, dropoffAddress: locationText }));
+      setIsGettingDropoffLocation(false);
+      
+      if (finalAccuracy > 100) {
+        toast.warning(`Lokasi pengantaran didapat dengan akurasi ±${finalAccuracy}m.`);
+      } else {
+        toast.success(`Lokasi pengantaran berhasil didapatkan! (akurasi ±${finalAccuracy}m)`);
+      }
+    };
+
+    // Use watchPosition for better accuracy
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        attempts++;
+        const accuracy = position.coords.accuracy;
+        
+        console.log(`Dropoff GPS attempt ${attempts}: accuracy ${accuracy}m`);
+
+        // Keep the position with best accuracy
+        if (!bestPosition || accuracy < bestPosition.coords.accuracy) {
+          bestPosition = position;
+        }
+
+        // If accuracy is good enough (< 50m) or we've tried enough times, use it
+        if (accuracy < 50 || attempts >= maxAttempts) {
+          navigator.geolocation.clearWatch(watchId);
+          await processDropoffLocation(bestPosition);
+        }
+      },
+      (error) => {
+        navigator.geolocation.clearWatch(watchId);
+        setIsGettingDropoffLocation(false);
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Akses lokasi ditolak.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Informasi lokasi tidak tersedia.');
+            break;
+          case error.TIMEOUT:
+            toast.error('Waktu permintaan lokasi habis.');
+            break;
+          default:
+            toast.error('Gagal mendapatkan lokasi.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+
+    // Safety timeout
+    setTimeout(async () => {
+      if (attempts > 0 && bestPosition) {
+        navigator.geolocation.clearWatch(watchId);
+        await processDropoffLocation(bestPosition);
+      }
+    }, 16000);
+  };
+
+  const handleDropoffAddressModeChange = (mode: AddressMode) => {
+    setDropoffAddressMode(mode);
+    if (mode === 'manual') {
+      setFormData(prev => ({ ...prev, dropoffAddress: '' }));
+      setDropoffGpsCoords(null);
     }
   };
 
@@ -783,17 +918,144 @@ const Booking = () => {
                     <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Alamat Pengantaran / Tujuan (Opsional)
                     </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                      <Textarea
-                        name="dropoffAddress"
-                        value={formData.dropoffAddress}
-                        onChange={handleInputChange}
-                        placeholder="Masukkan alamat tujuan pengantaran (contoh: Terminal Purabaya, Jl. Bungurasih)"
-                        className="pl-10 min-h-[80px]"
-                      />
+                    
+                    {/* Dropoff Address Mode Toggle */}
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        type="button"
+                        variant={dropoffAddressMode === 'gps' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleDropoffAddressModeChange('gps')}
+                        className="flex-1"
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Pakai GPS
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={dropoffAddressMode === 'manual' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleDropoffAddressModeChange('manual')}
+                        className="flex-1"
+                      >
+                        <Edit3 className="w-4 h-4 mr-2" />
+                        Tulis Manual
+                      </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+
+                    {/* Dropoff GPS Mode */}
+                    {dropoffAddressMode === 'gps' && (
+                      <div className="space-y-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGetDropoffLocation}
+                          disabled={isGettingDropoffLocation}
+                          className="w-full"
+                        >
+                          {isGettingDropoffLocation ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Mencari lokasi...
+                            </>
+                          ) : (
+                            <>
+                              <Navigation className="w-4 h-4 mr-2" />
+                              {dropoffGpsCoords ? 'Perbarui Lokasi GPS' : 'Dapatkan Lokasi Saat Ini'}
+                            </>
+                          )}
+                        </Button>
+                        
+                        {dropoffGpsCoords && (
+                          <>
+                            <div className="bg-secondary/50 rounded-xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-foreground">Lokasi Pengantaran Terdeteksi</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsEditingDropoffGpsAddress(!isEditingDropoffGpsAddress)}
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              
+                              {isEditingDropoffGpsAddress ? (
+                                <Textarea
+                                  name="dropoffAddress"
+                                  value={formData.dropoffAddress}
+                                  onChange={handleInputChange}
+                                  className="min-h-[100px] text-sm"
+                                />
+                              ) : (
+                                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans">
+                                  {formData.dropoffAddress}
+                                </pre>
+                              )}
+                              
+                              <div className="mt-3">
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                  Detail tambahan (nama gedung, lantai, dll):
+                                </label>
+                                <Input
+                                  value={dropoffAdditionalDetails}
+                                  onChange={(e) => setDropoffAdditionalDetails(e.target.value)}
+                                  placeholder="Contoh: Gedung A Lt. 3, dekat pintu utara"
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
+                            
+                            {/* Dropoff Mini Map */}
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Map className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Geser marker untuk koreksi lokasi pengantaran
+                                </span>
+                              </div>
+                              <Suspense fallback={
+                                <div className="h-[200px] bg-secondary/50 rounded-lg flex items-center justify-center">
+                                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                                </div>
+                              }>
+                                <MiniMap 
+                                  lat={dropoffGpsCoords.lat}
+                                  lng={dropoffGpsCoords.lng}
+                                  originalLat={dropoffGpsCoords.lat}
+                                  originalLng={dropoffGpsCoords.lng}
+                                  address={formData.dropoffAddress}
+                                  onLocationChange={handleDropoffMarkerDrag}
+                                />
+                              </Suspense>
+                            </div>
+                          </>
+                        )}
+                        
+                        {!dropoffGpsCoords && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            💡 Gunakan GPS untuk lokasi pengantaran yang lebih akurat
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Dropoff Manual Mode */}
+                    {dropoffAddressMode === 'manual' && (
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                        <Textarea
+                          name="dropoffAddress"
+                          value={formData.dropoffAddress}
+                          onChange={handleInputChange}
+                          placeholder="Masukkan alamat tujuan pengantaran (contoh: Terminal Purabaya, Jl. Bungurasih)"
+                          className="pl-10 min-h-[80px]"
+                        />
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
                       💡 Isi jika Anda ingin diantarkan ke lokasi tertentu di kota tujuan
                     </p>
                   </div>
