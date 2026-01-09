@@ -123,6 +123,30 @@ const Booking = () => {
     }
   };
 
+  // Handle marker drag to update location
+  const handleMarkerDrag = async (lat: number, lng: number) => {
+    setGpsCoords({ lat, lng });
+    
+    toast.info('Memperbarui alamat...');
+    const address = await reverseGeocode(lat, lng);
+    const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+    
+    let locationText: string;
+    if (address) {
+      locationText = `📍 ${address}\n\n📐 Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n✏️ Lokasi dikoreksi manual\n🔗 ${mapsLink}`;
+    } else {
+      locationText = `📍 Lokasi GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n✏️ Lokasi dikoreksi manual\n🔗 ${mapsLink}`;
+    }
+    
+    // Preserve additional details if any
+    if (additionalDetails.trim()) {
+      locationText += `\n\n🏠 Detail: ${additionalDetails.trim()}`;
+    }
+    
+    setFormData(prev => ({ ...prev, pickupAddress: locationText }));
+    toast.success('Lokasi berhasil diperbarui!');
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Browser Anda tidak mendukung GPS');
@@ -659,7 +683,7 @@ const Booking = () => {
                                 Preview Lokasi:
                               </div>
                               <Suspense fallback={
-                                <div className="w-full h-[200px] rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 flex items-center justify-center">
+                                <div className="w-full h-[250px] rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 flex items-center justify-center">
                                   <Loader2 className="w-6 h-6 animate-spin text-green-600" />
                                 </div>
                               }>
@@ -667,6 +691,7 @@ const Booking = () => {
                                   lat={gpsCoords.lat} 
                                   lng={gpsCoords.lng} 
                                   address={formData.pickupAddress}
+                                  onLocationChange={handleMarkerDrag}
                                 />
                               </Suspense>
                             </div>

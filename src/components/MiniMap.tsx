@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -18,6 +18,7 @@ interface MiniMapProps {
   lat: number;
   lng: number;
   address?: string;
+  onLocationChange?: (lat: number, lng: number) => void;
 }
 
 // Component to recenter map when coords change
@@ -25,35 +26,87 @@ const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
   const map = useMap();
   
   useEffect(() => {
-    map.setView([lat, lng], 16);
+    map.setView([lat, lng], map.getZoom());
   }, [lat, lng, map]);
   
   return null;
 };
 
-const MiniMap = ({ lat, lng, address }: MiniMapProps) => {
+// Draggable marker component
+const DraggableMarker = ({ 
+  lat, 
+  lng, 
+  address, 
+  onLocationChange 
+}: { 
+  lat: number; 
+  lng: number; 
+  address?: string;
+  onLocationChange?: (lat: number, lng: number) => void;
+}) => {
+  const markerRef = useRef<L.Marker>(null);
+
+  const eventHandlers = {
+    dragend() {
+      const marker = markerRef.current;
+      if (marker && onLocationChange) {
+        const newPos = marker.getLatLng();
+        onLocationChange(newPos.lat, newPos.lng);
+      }
+    },
+  };
+
   return (
-    <div className="w-full h-[200px] rounded-lg overflow-hidden border border-green-300 dark:border-green-700 shadow-sm">
+    <Marker 
+      position={[lat, lng]} 
+      icon={markerIcon}
+      draggable={!!onLocationChange}
+      eventHandlers={eventHandlers}
+      ref={markerRef}
+    >
+      <Popup>
+        <div className="text-sm">
+          <p className="font-medium">📍 Lokasi Penjemputan</p>
+          {address && <p className="text-xs mt-1 text-gray-600">{address.split('\n')[0]}</p>}
+          {onLocationChange && (
+            <p className="text-xs mt-2 text-primary font-medium">↕️ Geser marker untuk koreksi lokasi</p>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  );
+};
+
+const MiniMap = ({ lat, lng, address, onLocationChange }: MiniMapProps) => {
+  return (
+    <div className="w-full h-[250px] rounded-lg overflow-hidden border border-green-300 dark:border-green-700 shadow-sm relative">
       <MapContainer
         center={[lat, lng]}
         zoom={16}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
         attributionControl={false}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <ZoomControl position="topright" />
         <RecenterMap lat={lat} lng={lng} />
-        <Marker position={[lat, lng]} icon={markerIcon}>
-          <Popup>
-            <div className="text-sm">
-              <p className="font-medium">📍 Lokasi Penjemputan</p>
-              {address && <p className="text-xs mt-1 text-gray-600">{address.split('\n')[0]}</p>}
-            </div>
-          </Popup>
-        </Marker>
+        <DraggableMarker 
+          lat={lat} 
+          lng={lng} 
+          address={address}
+          onLocationChange={onLocationChange}
+        />
       </MapContainer>
+      
+      {/* Hint overlay */}
+      {onLocationChange && (
+        <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white text-xs py-1.5 px-3 rounded-lg text-center pointer-events-none">
+          🖐️ Geser peta untuk melihat sekitar • 📍 Geser marker untuk koreksi lokasi
+        </div>
+      )}
     </div>
   );
 };
