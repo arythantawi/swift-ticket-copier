@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, forwardRef } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Shield, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-const AdminLogin = forwardRef<HTMLDivElement>((_, ref) => {
+const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isAdmin, isLoading } = useAuth();
@@ -145,7 +145,7 @@ const AdminLogin = forwardRef<HTMLDivElement>((_, ref) => {
 
   if (isLoading) {
     return (
-      <div ref={ref} className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -154,7 +154,7 @@ const AdminLogin = forwardRef<HTMLDivElement>((_, ref) => {
   // If already logged in as admin, show loading while redirecting
   if (user && isAdmin) {
     return (
-      <div ref={ref} className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Mengalihkan ke dashboard...</p>
@@ -164,7 +164,7 @@ const AdminLogin = forwardRef<HTMLDivElement>((_, ref) => {
   }
 
   return (
-    <div ref={ref} className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -247,8 +247,6 @@ const AdminLogin = forwardRef<HTMLDivElement>((_, ref) => {
       </div>
     </div>
   );
-});
-
-AdminLogin.displayName = 'AdminLogin';
+};
 
 export default AdminLogin;
