@@ -212,14 +212,45 @@ const AdminManifest = () => {
     );
   };
 
+  // Get matching trip operation
+  const getMatchingTripOperation = (bookingsGroup: Booking[]) => {
+    if (bookingsGroup.length === 0) return null;
+    const firstBooking = bookingsGroup[0];
+    return tripOperations.find(trip => 
+      trip.trip_date === firstBooking.travel_date &&
+      trip.route_from === firstBooking.route_from &&
+      trip.route_to === firstBooking.route_to &&
+      trip.pickup_time === firstBooking.pickup_time
+    ) || null;
+  };
+
+  // Check if booking data differs from operations
+  const hasBookingChanges = (bookingsGroup: Booking[]) => {
+    const matchingTrip = getMatchingTripOperation(bookingsGroup);
+    if (!matchingTrip) return false;
+
+    const totalPassengers = bookingsGroup.reduce((sum, b) => sum + b.passengers, 0);
+    const paidBookings = bookingsGroup.filter(b => b.payment_status === 'paid');
+    const incomeTickets = paidBookings.reduce((sum, b) => sum + b.total_price, 0);
+
+    // Compare with current operation data (only passengers and income)
+    // We cast to any to access additional properties that might be on the full trip object
+    const tripOp = tripOperations.find(t => t.id === matchingTrip.id);
+    if (!tripOp) return false;
+
+    // Fetch full trip data to compare - for now just return true to allow update
+    return true;
+  };
+
   // Process manifest to operations
-  const handleProcessToOperations = async (bookingsGroup: Booking[]) => {
+  const handleProcessToOperations = async (bookingsGroup: Booking[], isUpdate: boolean = false) => {
     if (bookingsGroup.length === 0) return;
 
     const firstBooking = bookingsGroup[0];
+    const existingTrip = getMatchingTripOperation(bookingsGroup);
     
-    // Check if already exists
-    if (isTripProcessed(bookingsGroup)) {
+    // Check if already exists and not updating
+    if (!isUpdate && existingTrip) {
       toast.error('Trip ini sudah ada di data operasional');
       return;
     }
@@ -231,41 +262,61 @@ const AdminManifest = () => {
       const paidBookings = bookingsGroup.filter(b => b.payment_status === 'paid');
       const incomeTickets = paidBookings.reduce((sum, b) => sum + b.total_price, 0);
 
-      const tripData = {
-        trip_date: firstBooking.travel_date,
-        route_from: firstBooking.route_from,
-        route_to: firstBooking.route_to,
-        route_via: firstBooking.route_via || null,
-        pickup_time: firstBooking.pickup_time,
-        total_passengers: totalPassengers,
-        income_tickets: incomeTickets,
-        income_other: 0,
-        expense_fuel: 0,
-        expense_ferry: 0,
-        expense_snack: 0,
-        expense_meals: 0,
-        expense_driver_commission: Math.round(incomeTickets * 0.15), // Default 15%
-        expense_driver_meals: 0,
-        expense_toll: 0,
-        expense_parking: 0,
-        expense_other: 0,
-        driver_name: manifestConfig.driverName || null,
-        driver_phone: manifestConfig.driverPhone || null,
-        vehicle_number: manifestConfig.vehicleNumber || null,
-        notes: `Auto-generated dari manifest. ${bookingsGroup.length} booking, ${paidBookings.length} lunas.`,
-      };
+      if (isUpdate && existingTrip) {
+        // Update existing trip - only update passengers and income, keep other expenses
+        const updateData = {
+          total_passengers: totalPassengers,
+          income_tickets: incomeTickets,
+          notes: `Update dari manifest. ${bookingsGroup.length} booking, ${paidBookings.length} lunas.`,
+        };
 
-      const { error } = await supabase
-        .from('trip_operations')
-        .insert([tripData]);
+        const { error } = await supabase
+          .from('trip_operations')
+          .update(updateData)
+          .eq('id', existingTrip.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        
+        toast.success('Data operasional berhasil diperbarui');
+      } else {
+        // Insert new trip
+        const tripData = {
+          trip_date: firstBooking.travel_date,
+          route_from: firstBooking.route_from,
+          route_to: firstBooking.route_to,
+          route_via: firstBooking.route_via || null,
+          pickup_time: firstBooking.pickup_time,
+          total_passengers: totalPassengers,
+          income_tickets: incomeTickets,
+          income_other: 0,
+          expense_fuel: 0,
+          expense_ferry: 0,
+          expense_snack: 0,
+          expense_meals: 0,
+          expense_driver_commission: Math.round(incomeTickets * 0.15), // Default 15%
+          expense_driver_meals: 0,
+          expense_toll: 0,
+          expense_parking: 0,
+          expense_other: 0,
+          driver_name: manifestConfig.driverName || null,
+          driver_phone: manifestConfig.driverPhone || null,
+          vehicle_number: manifestConfig.vehicleNumber || null,
+          notes: `Auto-generated dari manifest. ${bookingsGroup.length} booking, ${paidBookings.length} lunas.`,
+        };
+
+        const { error } = await supabase
+          .from('trip_operations')
+          .insert([tripData]);
+
+        if (error) throw error;
+        
+        toast.success('Data berhasil dikirim ke Operasional');
+      }
       
-      toast.success('Data berhasil dikirim ke Operasional');
       fetchData(); // Refresh to update processed status
     } catch (error) {
       console.error('Error processing to operations:', error);
-      toast.error('Gagal mengirim data ke operasional');
+      toast.error('Gagal menyimpan data operasional');
     } finally {
       setIsProcessing(false);
     }
@@ -443,14 +494,25 @@ const AdminManifest = () => {
                       </div>
                       <div className="flex gap-2">
                         {isTripProcessed(bookingsGroup) ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 gap-1 py-2">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Sudah Diproses
-                          </Badge>
+                          <>
+                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 gap-1 py-2">
+                              <CheckCircle2 className="w-4 h-4" />
+                              Diproses
+                            </Badge>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleProcessToOperations(bookingsGroup, true)}
+                              disabled={isProcessing}
+                            >
+                              <RefreshCw className={`w-4 h-4 mr-1 ${isProcessing ? 'animate-spin' : ''}`} />
+                              Update
+                            </Button>
+                          </>
                         ) : (
                           <Button 
                             variant="outline" 
-                            onClick={() => handleProcessToOperations(bookingsGroup)}
+                            onClick={() => handleProcessToOperations(bookingsGroup, false)}
                             disabled={isProcessing}
                           >
                             <Send className="w-4 h-4 mr-2" />
@@ -599,11 +661,23 @@ const AdminManifest = () => {
             <Button variant="outline" onClick={() => setIsManifestDialogOpen(false)}>
               Batal
             </Button>
-            {!isTripProcessed(selectedBookingsGroup) && (
+            {isTripProcessed(selectedBookingsGroup) ? (
               <Button 
                 variant="secondary"
                 onClick={() => {
-                  handleProcessToOperations(selectedBookingsGroup);
+                  handleProcessToOperations(selectedBookingsGroup, true);
+                  setIsManifestDialogOpen(false);
+                }}
+                disabled={isProcessing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+                Update Operasional
+              </Button>
+            ) : (
+              <Button 
+                variant="secondary"
+                onClick={() => {
+                  handleProcessToOperations(selectedBookingsGroup, false);
                   setIsManifestDialogOpen(false);
                 }}
                 disabled={isProcessing}
