@@ -3,6 +3,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
+import HeroBanner from '@/components/HeroBanner';
+import PromoSection from '@/components/PromoSection';
 import Services from '@/components/Services';
 import Facilities from '@/components/Facilities';
 import PopularRoutes from '@/components/PopularRoutes';
@@ -10,6 +12,7 @@ import AllRoutes from '@/components/AllRoutes';
 import PremiumServices from '@/components/PremiumServices';
 import Features from '@/components/Features';
 import PaymentInfo from '@/components/PaymentInfo';
+import FAQSection from '@/components/FAQSection';
 import Footer from '@/components/Footer';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -44,6 +47,8 @@ const Index = () => {
       <Navbar />
       <main>
         <Hero />
+        <HeroBanner />
+        <PromoSection />
         <Services />
         <Facilities />
         <section id="rute">
@@ -55,6 +60,7 @@ const Index = () => {
         <section id="pembayaran">
           <PaymentInfo />
         </section>
+        <FAQSection />
       </main>
       <Footer />
     </div>
