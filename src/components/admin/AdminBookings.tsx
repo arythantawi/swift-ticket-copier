@@ -86,6 +86,10 @@ const AdminBookings = ({ onStatsUpdate }: AdminBookingsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [specificDate, setSpecificDate] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
@@ -275,7 +279,45 @@ Terima kasih! 🙏`;
     
     const matchesStatus = statusFilter === 'all' || booking.payment_status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    // Date filter
+    let matchesDate = true;
+    const bookingDate = new Date(booking.travel_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (dateFilter === 'today') {
+      const bookingDateOnly = new Date(bookingDate);
+      bookingDateOnly.setHours(0, 0, 0, 0);
+      matchesDate = bookingDateOnly.getTime() === today.getTime();
+    } else if (dateFilter === 'week') {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const weekAhead = new Date(today);
+      weekAhead.setDate(weekAhead.getDate() + 7);
+      matchesDate = bookingDate >= weekAgo && bookingDate <= weekAhead;
+    } else if (dateFilter === 'month') {
+      matchesDate = bookingDate.getMonth() === today.getMonth() && 
+                    bookingDate.getFullYear() === today.getFullYear();
+    } else if (dateFilter === 'specific' && specificDate) {
+      const selectedDate = new Date(specificDate);
+      selectedDate.setHours(0, 0, 0, 0);
+      const bookingDateOnly = new Date(bookingDate);
+      bookingDateOnly.setHours(0, 0, 0, 0);
+      matchesDate = bookingDateOnly.getTime() === selectedDate.getTime();
+    } else if (dateFilter === 'range') {
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        matchesDate = matchesDate && bookingDate >= fromDate;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        matchesDate = matchesDate && bookingDate <= toDate;
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   return (
@@ -287,34 +329,102 @@ Terima kasih! 🙏`;
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari Order ID, nama, atau telepon..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari Order ID, nama, atau telepon..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="pending">Menunggu Pembayaran</SelectItem>
+                <SelectItem value="waiting_verification">Menunggu Verifikasi</SelectItem>
+                <SelectItem value="paid">Lunas</SelectItem>
+                <SelectItem value="cancelled">Dibatalkan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={fetchBookings} variant="outline" size="icon">
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="pending">Menunggu Pembayaran</SelectItem>
-              <SelectItem value="waiting_verification">Menunggu Verifikasi</SelectItem>
-              <SelectItem value="paid">Lunas</SelectItem>
-              <SelectItem value="cancelled">Dibatalkan</SelectItem>
-            </SelectContent>
-          </Select>
+
+        {/* Date Filter */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter tanggal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Tanggal</SelectItem>
+                <SelectItem value="today">Hari Ini</SelectItem>
+                <SelectItem value="week">Minggu Ini</SelectItem>
+                <SelectItem value="month">Bulan Ini</SelectItem>
+                <SelectItem value="specific">Pilih Tanggal</SelectItem>
+                <SelectItem value="range">Rentang Tanggal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {dateFilter === 'specific' && (
+            <Input
+              type="date"
+              value={specificDate}
+              onChange={(e) => setSpecificDate(e.target.value)}
+              className="w-[180px]"
+            />
+          )}
+
+          {dateFilter === 'range' && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                placeholder="Dari"
+              />
+              <span className="text-muted-foreground">-</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                placeholder="Sampai"
+              />
+            </div>
+          )}
+
+          {(dateFilter !== 'all' || statusFilter !== 'all' || searchTerm) && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setDateFilter('all');
+                setStatusFilter('all');
+                setSearchTerm('');
+                setSpecificDate('');
+                setDateFrom('');
+                setDateTo('');
+              }}
+            >
+              Reset Filter
+            </Button>
+          )}
         </div>
-        <Button onClick={fetchBookings} variant="outline" size="icon">
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </Button>
       </div>
 
       {/* Bookings List */}
