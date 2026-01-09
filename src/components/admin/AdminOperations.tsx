@@ -132,6 +132,7 @@ const AdminOperations = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [specificDate, setSpecificDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<TripOperation | null>(null);
   const [form, setForm] = useState<TripForm>(initialForm);
@@ -347,6 +348,9 @@ const AdminOperations = () => {
         tripDate.getMonth() === today.getMonth() && 
         tripDate.getFullYear() === today.getFullYear();
     }
+    if (dateFilter === 'specific') {
+      return matchesSearch && trip.trip_date === specificDate;
+    }
     
     return matchesSearch;
   });
@@ -414,8 +418,17 @@ const AdminOperations = () => {
               <SelectItem value="today">Hari Ini</SelectItem>
               <SelectItem value="week">Minggu Ini</SelectItem>
               <SelectItem value="month">Bulan Ini</SelectItem>
+              <SelectItem value="specific">Pilih Tanggal</SelectItem>
             </SelectContent>
           </Select>
+          {dateFilter === 'specific' && (
+            <Input
+              type="date"
+              value={specificDate}
+              onChange={(e) => setSpecificDate(e.target.value)}
+              className="w-[160px]"
+            />
+          )}
         </div>
         <div className="flex gap-2">
           <Button onClick={fetchTrips} variant="outline" size="icon">
