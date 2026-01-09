@@ -133,10 +133,17 @@ const AdminOperations = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [specificDate, setSpecificDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [routeFilter, setRouteFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<TripOperation | null>(null);
   const [form, setForm] = useState<TripForm>(initialForm);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Get available routes from trips data
+  const availableRoutes = [...new Set(trips.map(t => `${t.route_from} → ${t.route_to}`))]
+    .sort((a, b) => a.localeCompare(b));
 
   const fetchTrips = async () => {
     setIsLoading(true);
@@ -331,6 +338,12 @@ const AdminOperations = () => {
       trip.route_to.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (trip.driver_name && trip.driver_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
+    // Route filter
+    const tripRoute = `${trip.route_from} → ${trip.route_to}`;
+    const matchesRoute = routeFilter === 'all' || tripRoute === routeFilter;
+    
+    if (!matchesRoute) return false;
+    
     if (dateFilter === 'all') return matchesSearch;
     
     const tripDate = new Date(trip.trip_date);
@@ -351,11 +364,40 @@ const AdminOperations = () => {
     if (dateFilter === 'specific') {
       return matchesSearch && trip.trip_date === specificDate;
     }
+    if (dateFilter === 'range') {
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+      
+      if (from && to) {
+        return matchesSearch && tripDate >= from && tripDate <= to;
+      } else if (from) {
+        return matchesSearch && tripDate >= from;
+      } else if (to) {
+        return matchesSearch && tripDate <= to;
+      }
+      return matchesSearch;
+    }
     
     return matchesSearch;
   });
 
-  const stats = getOverallStats();
+  // Calculate filtered stats
+  const getFilteredStats = () => {
+    let totalPassengers = 0;
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    filteredTrips.forEach(trip => {
+      totalPassengers += trip.total_passengers;
+      const { totalIncome: ti, totalExpense: te } = calculateTotals(trip);
+      totalIncome += ti;
+      totalExpense += te;
+    });
+
+    return { totalPassengers, totalIncome, totalExpense, profit: totalIncome - totalExpense };
+  };
+
+  const filteredStats = getFilteredStats();
 
   return (
     <div className="space-y-6">
@@ -366,7 +408,7 @@ const AdminOperations = () => {
             <Users className="w-5 h-5 text-primary" />
             <p className="text-sm text-muted-foreground">Total Penumpang</p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{stats.totalPassengers}</p>
+          <p className="text-2xl font-bold text-foreground">{filteredStats.totalPassengers}</p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
           <div className="flex items-center gap-2 mb-2">
@@ -374,7 +416,7 @@ const AdminOperations = () => {
             <p className="text-sm text-green-700 dark:text-green-400">Pemasukan</p>
           </div>
           <p className="text-2xl font-bold text-green-800 dark:text-green-300">
-            {formatPrice(stats.totalIncome)}
+            {formatPrice(filteredStats.totalIncome)}
           </p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
@@ -383,24 +425,24 @@ const AdminOperations = () => {
             <p className="text-sm text-red-700 dark:text-red-400">Pengeluaran</p>
           </div>
           <p className="text-2xl font-bold text-red-800 dark:text-red-300">
-            {formatPrice(stats.totalExpense)}
+            {formatPrice(filteredStats.totalExpense)}
           </p>
         </div>
-        <div className={`rounded-xl p-4 border ${stats.profit >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'}`}>
+        <div className={`rounded-xl p-4 border ${filteredStats.profit >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'}`}>
           <div className="flex items-center gap-2 mb-2">
-            <CircleDollarSign className={`w-5 h-5 ${stats.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
-            <p className={`text-sm ${stats.profit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>Profit</p>
+            <CircleDollarSign className={`w-5 h-5 ${filteredStats.profit >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
+            <p className={`text-sm ${filteredStats.profit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>Profit</p>
           </div>
-          <p className={`text-2xl font-bold ${stats.profit >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>
-            {formatPrice(stats.profit)}
+          <p className={`text-2xl font-bold ${filteredStats.profit >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>
+            {formatPrice(filteredStats.profit)}
           </p>
         </div>
       </div>
 
       {/* Filters & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex flex-col sm:flex-row gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col lg:flex-row gap-4 justify-between">
+        <div className="flex flex-wrap gap-3 flex-1 items-end">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Cari rute atau driver..."
@@ -409,16 +451,28 @@ const AdminOperations = () => {
               className="pl-10"
             />
           </div>
+          <Select value={routeFilter} onValueChange={setRouteFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter rute" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Rute</SelectItem>
+              {availableRoutes.map(route => (
+                <SelectItem key={route} value={route}>{route}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Filter tanggal" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua</SelectItem>
+              <SelectItem value="all">Semua Tanggal</SelectItem>
               <SelectItem value="today">Hari Ini</SelectItem>
               <SelectItem value="week">Minggu Ini</SelectItem>
               <SelectItem value="month">Bulan Ini</SelectItem>
               <SelectItem value="specific">Pilih Tanggal</SelectItem>
+              <SelectItem value="range">Rentang Tanggal</SelectItem>
             </SelectContent>
           </Select>
           {dateFilter === 'specific' && (
@@ -426,8 +480,27 @@ const AdminOperations = () => {
               type="date"
               value={specificDate}
               onChange={(e) => setSpecificDate(e.target.value)}
-              className="w-[160px]"
+              className="w-[150px]"
             />
+          )}
+          {dateFilter === 'range' && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[140px]"
+                placeholder="Dari"
+              />
+              <span className="text-muted-foreground">-</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[140px]"
+                placeholder="Sampai"
+              />
+            </div>
           )}
         </div>
         <div className="flex gap-2">
