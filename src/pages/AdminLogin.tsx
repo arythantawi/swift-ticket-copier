@@ -12,7 +12,7 @@ import { Shield, Lock, Mail, Smartphone, Key, Loader2, RefreshCw } from 'lucide-
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, isLoading, mfaRequired, signIn, verifyOtp, enrollMfa, verifyMfaEnrollment, resetMfa } = useAuth();
+  const { user, isAdmin, isLoading, authReady, mfaRequired, signIn, verifyOtp, enrollMfa, verifyMfaEnrollment, resetMfa } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,10 +28,10 @@ const AdminLogin = () => {
   const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user && isAdmin && !mfaRequired) {
+    if (authReady && !isLoading && user && isAdmin && !mfaRequired) {
       navigate('/admin');
     }
-  }, [user, isAdmin, isLoading, mfaRequired, navigate]);
+  }, [user, isAdmin, isLoading, authReady, mfaRequired, navigate]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -189,7 +189,7 @@ const AdminLogin = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (user && !authReady)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

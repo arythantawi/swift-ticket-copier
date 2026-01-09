@@ -15,6 +15,8 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   isLoading: boolean;
+  /** true when role + MFA checks have completed for the current session */
+  authReady: boolean;
   mfaRequired: boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
   verifyOtp: (code: string) => Promise<{ error: AuthError | null }>;
@@ -32,14 +34,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
+
+  const withTimeout = async <T,>(promiseLike: PromiseLike<T>, ms: number, label: string): Promise<T> => {
+    let timeoutId: number | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    });
+
+    try {
+      // Supabase builders are PromiseLike, not always a real Promise
+      const p = Promise.resolve(promiseLike as unknown as Promise<T>);
+      return await Promise.race([p, timeout]);
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+  };
 
   const checkAdminRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'admin'
-      });
+      const res = await withTimeout(
+        supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }) as any,
+        4000,
+        'checkAdminRole'
+      );
+      const { data, error } = res as any;
       if (error) {
         console.error('Error checking admin role:', error);
         return false;
@@ -52,19 +72,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+    const applyRoleAndMfa = async (sess: Session | null) => {
       try {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const adminStatus = await checkAdminRole(session.user.id);
+        if (sess?.user) {
+          const adminStatus = await checkAdminRole(sess.user.id);
           setIsAdmin(adminStatus);
 
-          // Enforce MFA based on Authenticator Assurance Level (AAL)
-          const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          const res = (await withTimeout(
+            supabase.auth.mfa.getAuthenticatorAssuranceLevel() as any,
+            4000,
+            'getAuthenticatorAssuranceLevel'
+          )) as any;
+          const { data, error } = res as any;
+
           if (!error && data) {
             const needsMfa = data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
             setMfaRequired(needsMfa);
@@ -76,50 +96,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setMfaRequired(false);
         }
       } catch (e) {
-        console.error('AuthProvider onAuthStateChange failed:', e);
+        console.error('AuthProvider role/mfa check failed:', e);
         setIsAdmin(false);
         setMfaRequired(false);
       } finally {
-        setIsLoading(false);
+        setAuthReady(true);
       }
+    };
+
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, sess) => {
+      console.log('Auth state changed:', event);
+
+      setAuthReady(false);
+      setSession(sess);
+      setUser(sess?.user ?? null);
+      // Mark ready for rendering immediately; role/MFA checks can complete after.
+      setIsLoading(false);
+
+      await applyRoleAndMfa(sess);
     });
 
     // Then check for existing session
-    supabase.auth.getSession()
-      .then(async ({ data: { session } }) => {
-        try {
-          setSession(session);
-          setUser(session?.user ?? null);
+    (async () => {
+      try {
+        const {
+          data: { session: sess },
+        } = await supabase.auth.getSession();
 
-          if (session?.user) {
-            const adminStatus = await checkAdminRole(session.user.id);
-            setIsAdmin(adminStatus);
+        setAuthReady(false);
+        setSession(sess);
+        setUser(sess?.user ?? null);
+        setIsLoading(false);
 
-            const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            if (!error && data) {
-              const needsMfa = data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
-              setMfaRequired(needsMfa);
-            } else {
-              setMfaRequired(false);
-            }
-          } else {
-            setIsAdmin(false);
-            setMfaRequired(false);
-          }
-        } catch (e) {
-          console.error('AuthProvider getSession failed:', e);
-          setIsAdmin(false);
-          setMfaRequired(false);
-        } finally {
-          setIsLoading(false);
-        }
-      })
-      .catch((e) => {
-        console.error('AuthProvider getSession promise failed:', e);
+        await applyRoleAndMfa(sess);
+      } catch (e) {
+        console.error('AuthProvider getSession failed:', e);
         setIsAdmin(false);
         setMfaRequired(false);
         setIsLoading(false);
-      });
+      }
+    })();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -303,6 +322,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         isAdmin,
         isLoading,
+        authReady,
         mfaRequired,
         signIn,
         verifyOtp,
@@ -329,6 +349,7 @@ export const useAuth = () => {
       session: null,
       isAdmin: false,
       isLoading: false,
+      authReady: true,
       mfaRequired: false,
       signIn: async () => ({ error: { message: 'Auth context not ready' } as any }),
       verifyOtp: async () => ({ error: { message: 'Auth context not ready' } as any }),

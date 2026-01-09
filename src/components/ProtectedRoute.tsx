@@ -9,9 +9,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, isAdmin, isLoading, mfaRequired } = useAuth();
+  const { user, isAdmin, isLoading, authReady, mfaRequired } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || !authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
