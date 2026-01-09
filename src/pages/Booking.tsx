@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, MapPin, Users, Calendar, User, Phone, Mail, MapPinned, CheckCircle, Printer, Navigation, Edit3, Loader2, Map } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Users, Calendar, User, Phone, Mail, MapPinned, CheckCircle, Printer, Navigation, Edit3, Loader2, Map, AlertTriangle } from 'lucide-react';
 
 // Lazy load MiniMap to avoid SSR issues with Leaflet
 const MiniMap = lazy(() => import('@/components/MiniMap'));
@@ -31,6 +31,24 @@ const Booking = () => {
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isEditingGpsAddress, setIsEditingGpsAddress] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState('');
+  const [isOutsideServiceArea, setIsOutsideServiceArea] = useState(false);
+  
+  // Surabaya service area boundaries (approximate)
+  const SURABAYA_BOUNDS = {
+    north: -7.15,  // Batas utara
+    south: -7.40,  // Batas selatan
+    west: 112.60,  // Batas barat
+    east: 112.85,  // Batas timur
+  };
+  
+  const isWithinSurabaya = (lat: number, lng: number): boolean => {
+    return (
+      lat >= SURABAYA_BOUNDS.south &&
+      lat <= SURABAYA_BOUNDS.north &&
+      lng >= SURABAYA_BOUNDS.west &&
+      lng <= SURABAYA_BOUNDS.east
+    );
+  };
   
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
@@ -125,6 +143,14 @@ const Booking = () => {
 
   // Handle marker drag to update location
   const handleMarkerDrag = async (lat: number, lng: number) => {
+    // Validate service area
+    const withinArea = isWithinSurabaya(lat, lng);
+    setIsOutsideServiceArea(!withinArea);
+    
+    if (!withinArea) {
+      toast.error('Lokasi di luar area layanan! Penjemputan hanya tersedia di wilayah Surabaya.');
+    }
+    
     setGpsCoords({ lat, lng });
     
     toast.info('Memperbarui alamat...');
@@ -144,7 +170,10 @@ const Booking = () => {
     }
     
     setFormData(prev => ({ ...prev, pickupAddress: locationText }));
-    toast.success('Lokasi berhasil diperbarui!');
+    
+    if (withinArea) {
+      toast.success('Lokasi berhasil diperbarui!');
+    }
   };
 
   const handleGetLocation = () => {
@@ -163,6 +192,10 @@ const Booking = () => {
     const processLocation = async (position: GeolocationPosition) => {
       const { latitude, longitude } = position.coords;
       const finalAccuracy = Math.round(position.coords.accuracy);
+      
+      // Validate service area
+      const withinArea = isWithinSurabaya(latitude, longitude);
+      setIsOutsideServiceArea(!withinArea);
       
       setGpsCoords({ lat: latitude, lng: longitude });
       
@@ -183,7 +216,9 @@ const Booking = () => {
       setFormData(prev => ({ ...prev, pickupAddress: locationText }));
       setIsGettingLocation(false);
       
-      if (finalAccuracy > 100) {
+      if (!withinArea) {
+        toast.error('Lokasi Anda di luar area layanan! Penjemputan hanya tersedia di wilayah Surabaya.');
+      } else if (finalAccuracy > 100) {
         toast.warning(`Lokasi didapat dengan akurasi ±${finalAccuracy}m. Untuk akurasi lebih baik, coba di area terbuka.`);
       } else {
         toast.success(`Lokasi berhasil didapatkan! (akurasi ±${finalAccuracy}m)`);
@@ -611,7 +646,25 @@ const Booking = () => {
                           )}
                         </Button>
                         
-                        {gpsCoords && (
+                        {/* Outside Service Area Warning */}
+                        {isOutsideServiceArea && gpsCoords && (
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-800 flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium text-red-800 dark:text-red-300 mb-1">Di Luar Area Layanan!</p>
+                                <p className="text-sm text-red-700 dark:text-red-400">
+                                  Maaf, layanan penjemputan hanya tersedia di wilayah <strong>Surabaya</strong>. 
+                                  Silakan pilih lokasi penjemputan dalam area Surabaya atau gunakan input manual untuk lokasi meeting point.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {gpsCoords && !isOutsideServiceArea && (
                           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 space-y-3">
                             <div className="flex items-start gap-3">
                               <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
@@ -735,10 +788,17 @@ const Booking = () => {
                     />
                   </div>
 
+                  {/* Service Area Warning for Submit */}
+                  {addressMode === 'gps' && isOutsideServiceArea && (
+                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                      ⚠️ Tidak dapat melanjutkan: Lokasi di luar area layanan Surabaya
+                    </p>
+                  )}
+
                   <Button 
                     type="submit" 
                     className="w-full btn-gold py-6 text-lg"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (addressMode === 'gps' && isOutsideServiceArea)}
                   >
                     {isSubmitting ? 'Memproses...' : 'Lanjut ke Pembayaran'}
                   </Button>
