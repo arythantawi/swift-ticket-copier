@@ -2,17 +2,26 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SignInResult {
+  error: AuthError | null;
+  mfaRequired?: boolean;
+  hasUnverifiedFactor?: boolean;
+  factorId?: string;
+  needsEnrollment?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
   isLoading: boolean;
   mfaRequired: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null; mfaRequired?: boolean }>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
   verifyOtp: (code: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  enrollMfa: () => Promise<{ qrCode: string; secret: string } | null>;
+  enrollMfa: () => Promise<{ qrCode: string; secret: string; factorId: string } | null>;
   verifyMfaEnrollment: (code: string, factorId: string) => Promise<{ error: AuthError | null }>;
+  getUnverifiedFactor: () => Promise<{ factorId: string } | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,14 +94,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error };
     }
 
-    // Check if MFA is required
+    // Check if MFA is set up (verified factors)
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
-    if (factorsData?.totp && factorsData.totp.length > 0) {
+    const verifiedFactors = factorsData?.totp?.filter(f => (f.status as string) === 'verified') || [];
+    const unverifiedFactors = factorsData?.totp?.filter(f => (f.status as string) === 'unverified') || [];
+    
+    if (verifiedFactors.length > 0) {
+      // User has verified MFA, need to verify OTP
       setMfaRequired(true);
       return { error: null, mfaRequired: true };
     }
+    
+    if (unverifiedFactors.length > 0) {
+      // Has unverified factor - return info to show enrollment with existing factor
+      return { error: null, mfaRequired: false, hasUnverifiedFactor: true, factorId: unverifiedFactors[0].id };
+    }
 
-    return { error: null };
+    // No MFA at all - need to enroll
+    return { error: null, mfaRequired: false, needsEnrollment: true };
   };
 
   const verifyOtp = async (code: string) => {
@@ -125,7 +144,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const enrollMfa = async () => {
+  const enrollMfa = async (): Promise<{ qrCode: string; secret: string; factorId: string } | null> => {
+    // First, unenroll any existing unverified factors
+    const { data: factorsData } = await supabase.auth.mfa.listFactors();
+    const unverifiedFactors = factorsData?.totp?.filter(f => (f.status as string) === 'unverified') || [];
+    
+    for (const factor of unverifiedFactors) {
+      await supabase.auth.mfa.unenroll({ factorId: factor.id });
+    }
+
+    // Now enroll a new factor
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
       friendlyName: 'Admin TOTP',
@@ -140,7 +168,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       qrCode: data.totp.qr_code,
       secret: data.totp.secret,
       factorId: data.id,
-    } as { qrCode: string; secret: string; factorId?: string };
+    };
+  };
+
+  const getUnverifiedFactor = async (): Promise<{ factorId: string } | null> => {
+    const { data: factorsData } = await supabase.auth.mfa.listFactors();
+    const unverifiedFactors = factorsData?.totp?.filter(f => (f.status as string) === 'unverified') || [];
+    
+    if (unverifiedFactors.length > 0) {
+      return { factorId: unverifiedFactors[0].id };
+    }
+    return null;
   };
 
   const verifyMfaEnrollment = async (code: string, factorId: string) => {
@@ -182,6 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         enrollMfa,
         verifyMfaEnrollment,
+        getUnverifiedFactor,
       }}
     >
       {children}

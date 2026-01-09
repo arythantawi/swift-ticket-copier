@@ -37,25 +37,36 @@ const AdminLogin = () => {
     setIsSubmitting(true);
 
     try {
-      const { error, mfaRequired: needsMfa } = await signIn(email, password);
+      const result = await signIn(email, password);
 
-      if (error) {
+      if (result.error) {
         toast({
           variant: 'destructive',
           title: 'Login Gagal',
-          description: error.message,
+          description: result.error.message,
         });
         return;
       }
 
-      if (!needsMfa) {
-        // Check if user needs to set up MFA
+      if (result.mfaRequired) {
+        // MFA already set up and verified, show OTP input
+        return;
+      }
+
+      // Need to enroll or re-enroll MFA (handles both new enrollment and unverified factors)
+      if (result.needsEnrollment || result.hasUnverifiedFactor) {
         const mfaData = await enrollMfa();
         if (mfaData) {
           setQrCode(mfaData.qrCode);
           setSecret(mfaData.secret);
-          setFactorId((mfaData as any).factorId || '');
+          setFactorId(mfaData.factorId);
           setShowMfaSetup(true);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Gagal setup 2FA',
+          });
         }
       }
     } finally {
