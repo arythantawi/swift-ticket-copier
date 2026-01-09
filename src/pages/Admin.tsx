@@ -5,13 +5,15 @@ import {
   Calendar,
   ShoppingCart,
   Truck,
-  LogOut
+  LogOut,
+  FileText
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import AdminBookings from '@/components/admin/AdminBookings';
 import AdminSchedules from '@/components/admin/AdminSchedules';
 import AdminOperations from '@/components/admin/AdminOperations';
+import AdminManifest from '@/components/admin/AdminManifest';
 import { useAuth } from '@/hooks/useAuth';
 
 const Admin = () => {
@@ -76,10 +78,14 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="bookings" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Pesanan</span>
+            </TabsTrigger>
+            <TabsTrigger value="manifest" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Manifes</span>
             </TabsTrigger>
             <TabsTrigger value="schedules" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
@@ -93,6 +99,10 @@ const Admin = () => {
 
           <TabsContent value="bookings">
             <AdminBookings onStatsUpdate={setStats} />
+          </TabsContent>
+
+          <TabsContent value="manifest">
+            <AdminManifest />
           </TabsContent>
 
           <TabsContent value="schedules">

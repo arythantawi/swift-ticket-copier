@@ -57,9 +57,13 @@ export type Database = {
           customer_name: string
           customer_phone: string
           dropoff_address: string | null
+          has_large_luggage: boolean | null
+          has_package_delivery: boolean | null
           id: string
+          luggage_description: string | null
           notes: string | null
           order_id: string
+          package_description: string | null
           passengers: number
           payment_proof_drive_id: string | null
           payment_proof_url: string | null
@@ -69,6 +73,7 @@ export type Database = {
           route_from: string
           route_to: string
           route_via: string | null
+          special_requests: string | null
           total_price: number
           travel_date: string
           updated_at: string
@@ -79,9 +84,13 @@ export type Database = {
           customer_name: string
           customer_phone: string
           dropoff_address?: string | null
+          has_large_luggage?: boolean | null
+          has_package_delivery?: boolean | null
           id?: string
+          luggage_description?: string | null
           notes?: string | null
           order_id: string
+          package_description?: string | null
           passengers?: number
           payment_proof_drive_id?: string | null
           payment_proof_url?: string | null
@@ -91,6 +100,7 @@ export type Database = {
           route_from: string
           route_to: string
           route_via?: string | null
+          special_requests?: string | null
           total_price?: number
           travel_date: string
           updated_at?: string
@@ -101,9 +111,13 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           dropoff_address?: string | null
+          has_large_luggage?: boolean | null
+          has_package_delivery?: boolean | null
           id?: string
+          luggage_description?: string | null
           notes?: string | null
           order_id?: string
+          package_description?: string | null
           passengers?: number
           payment_proof_drive_id?: string | null
           payment_proof_url?: string | null
@@ -113,6 +127,7 @@ export type Database = {
           route_from?: string
           route_to?: string
           route_via?: string | null
+          special_requests?: string | null
           total_price?: number
           travel_date?: string
           updated_at?: string
@@ -162,6 +177,7 @@ export type Database = {
         Row: {
           created_at: string
           driver_name: string | null
+          driver_phone: string | null
           expense_driver_commission: number
           expense_driver_meals: number
           expense_ferry: number
@@ -187,6 +203,7 @@ export type Database = {
         Insert: {
           created_at?: string
           driver_name?: string | null
+          driver_phone?: string | null
           expense_driver_commission?: number
           expense_driver_meals?: number
           expense_ferry?: number
@@ -212,6 +229,7 @@ export type Database = {
         Update: {
           created_at?: string
           driver_name?: string | null
+          driver_phone?: string | null
           expense_driver_commission?: number
           expense_driver_meals?: number
           expense_ferry?: number
