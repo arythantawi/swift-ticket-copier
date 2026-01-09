@@ -54,56 +54,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
-      setSession(session);
-      setUser(session?.user ?? null);
+      try {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        // Check admin role
-        const adminStatus = await checkAdminRole(session.user.id);
-        setIsAdmin(adminStatus);
+        if (session?.user) {
+          const adminStatus = await checkAdminRole(session.user.id);
+          setIsAdmin(adminStatus);
 
-        // Enforce MFA based on Authenticator Assurance Level (AAL)
-        try {
+          // Enforce MFA based on Authenticator Assurance Level (AAL)
           const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (!error && data) {
             const needsMfa = data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
             setMfaRequired(needsMfa);
+          } else {
+            setMfaRequired(false);
           }
-        } catch (e) {
-          console.warn('Failed to read AAL:', e);
+        } else {
+          setIsAdmin(false);
+          setMfaRequired(false);
         }
-      } else {
+      } catch (e) {
+        console.error('AuthProvider onAuthStateChange failed:', e);
         setIsAdmin(false);
         setMfaRequired(false);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     });
 
     // Then check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const adminStatus = await checkAdminRole(session.user.id);
-        setIsAdmin(adminStatus);
-
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
         try {
-          const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          if (!error && data) {
-            const needsMfa = data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
-            setMfaRequired(needsMfa);
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            const adminStatus = await checkAdminRole(session.user.id);
+            setIsAdmin(adminStatus);
+
+            const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (!error && data) {
+              const needsMfa = data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
+              setMfaRequired(needsMfa);
+            } else {
+              setMfaRequired(false);
+            }
+          } else {
+            setIsAdmin(false);
+            setMfaRequired(false);
           }
         } catch (e) {
-          console.warn('Failed to read AAL:', e);
+          console.error('AuthProvider getSession failed:', e);
+          setIsAdmin(false);
+          setMfaRequired(false);
+        } finally {
+          setIsLoading(false);
         }
-      } else {
+      })
+      .catch((e) => {
+        console.error('AuthProvider getSession promise failed:', e);
+        setIsAdmin(false);
         setMfaRequired(false);
-      }
-
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -266,20 +281,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    // During hot reload, context might not be ready yet
-    // Return a safe default instead of throwing
-    console.warn('useAuth called outside AuthProvider - returning default values');
+    // In normal runtime this should never happen. If it does (e.g. transient HMR state),
+    // fail safe by returning a non-loading anonymous state so routes can redirect.
+    console.warn('useAuth called outside AuthProvider - returning safe defaults');
     return {
       user: null,
       session: null,
       isAdmin: false,
-      isLoading: true,
+      isLoading: false,
       mfaRequired: false,
-      signIn: async () => ({ error: { message: 'Auth not ready' } as any }),
-      verifyOtp: async () => ({ error: { message: 'Auth not ready' } as any }),
+      signIn: async () => ({ error: { message: 'Auth context not ready' } as any }),
+      verifyOtp: async () => ({ error: { message: 'Auth context not ready' } as any }),
       signOut: async () => {},
       enrollMfa: async () => null,
-      verifyMfaEnrollment: async () => ({ error: { message: 'Auth not ready' } as any }),
+      verifyMfaEnrollment: async () => ({ error: { message: 'Auth context not ready' } as any }),
       getUnverifiedFactor: async () => null,
     };
   }
