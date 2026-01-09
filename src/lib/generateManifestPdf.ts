@@ -13,6 +13,7 @@ export interface ManifestPassenger {
   packageDescription: string | null;
   specialRequests: string | null;
   paymentStatus: string;
+  sortOrder?: number; // For custom sorting
 }
 
 export interface ManifestData {
@@ -28,6 +29,114 @@ export interface ManifestData {
   passengers: ManifestPassenger[];
 }
 
+// Known city/area order from pickup point (closest to farthest from destination)
+// This map defines the order of locations for each route direction
+const getLocationOrder = (routeFrom: string, routeTo: string): Record<string, number> => {
+  // Define location orders based on common routes
+  // Lower number = closer to destination (should be delivered last)
+  // Higher number = farther from destination (should be picked up first)
+  
+  const locationOrders: Record<string, Record<string, number>> = {
+    // From Banyuwangi direction going to Surabaya
+    'Banyuwangi-Surabaya': {
+      'banyuwangi': 100,
+      'rogojampi': 95,
+      'muncar': 90,
+      'genteng': 85,
+      'jajag': 80,
+      'jember': 70,
+      'lumajang': 60,
+      'probolinggo': 50,
+      'pasuruan': 40,
+      'sidoarjo': 30,
+      'surabaya': 10,
+    },
+    // From Surabaya direction going to Banyuwangi
+    'Surabaya-Banyuwangi': {
+      'surabaya': 100,
+      'sidoarjo': 95,
+      'pasuruan': 85,
+      'probolinggo': 75,
+      'lumajang': 65,
+      'jember': 55,
+      'jajag': 45,
+      'genteng': 40,
+      'muncar': 35,
+      'rogojampi': 30,
+      'banyuwangi': 10,
+    },
+    // From Banyuwangi to Denpasar
+    'Banyuwangi-Denpasar': {
+      'banyuwangi': 100,
+      'ketapang': 90,
+      'gilimanuk': 80,
+      'negara': 70,
+      'tabanan': 50,
+      'denpasar': 10,
+      'kuta': 15,
+      'sanur': 12,
+      'ubud': 20,
+    },
+    // From Denpasar to Banyuwangi
+    'Denpasar-Banyuwangi': {
+      'denpasar': 100,
+      'kuta': 98,
+      'sanur': 97,
+      'ubud': 95,
+      'tabanan': 80,
+      'negara': 60,
+      'gilimanuk': 40,
+      'ketapang': 30,
+      'banyuwangi': 10,
+    },
+  };
+
+  const routeKey = `${routeFrom}-${routeTo}`;
+  return locationOrders[routeKey] || {};
+};
+
+// Extract location keyword from address
+const extractLocationKeyword = (address: string): string => {
+  const normalizedAddress = address.toLowerCase();
+  const keywords = [
+    'surabaya', 'sidoarjo', 'pasuruan', 'probolinggo', 'lumajang', 
+    'jember', 'jajag', 'genteng', 'muncar', 'rogojampi', 'banyuwangi',
+    'denpasar', 'kuta', 'sanur', 'ubud', 'tabanan', 'negara', 'gilimanuk', 'ketapang'
+  ];
+  
+  for (const keyword of keywords) {
+    if (normalizedAddress.includes(keyword)) {
+      return keyword;
+    }
+  }
+  return '';
+};
+
+// Sort passengers by pickup location (farthest from destination first)
+const sortPassengersByLocation = (
+  passengers: ManifestPassenger[], 
+  routeFrom: string, 
+  routeTo: string
+): ManifestPassenger[] => {
+  const locationOrder = getLocationOrder(routeFrom, routeTo);
+  
+  if (Object.keys(locationOrder).length === 0) {
+    // If no specific order defined, return as-is
+    return passengers;
+  }
+
+  return [...passengers].sort((a, b) => {
+    const locA = extractLocationKeyword(a.pickupAddress);
+    const locB = extractLocationKeyword(b.pickupAddress);
+    
+    const orderA = locationOrder[locA] ?? 50; // Default middle priority
+    const orderB = locationOrder[locB] ?? 50;
+    
+    // Sort descending (higher number = picked up first = appears first in manifest)
+    return orderB - orderA;
+  });
+};
+
 export const generateManifestPdf = (data: ManifestData): void => {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -40,6 +149,9 @@ export const generateManifestPdf = (data: ManifestData): void => {
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
+
+  // Sort passengers by location (farthest from destination first)
+  const sortedPassengers = sortPassengersByLocation(data.passengers, data.routeFrom, data.routeTo);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('id-ID', {
@@ -139,10 +251,10 @@ export const generateManifestPdf = (data: ManifestData): void => {
   doc.line(margin, y, margin + contentWidth, y);
   y += 8;
 
-  // Passengers List - Form format like the image
+  // Passengers List - Form format like the image (sorted by location)
   doc.setFontSize(10);
   
-  data.passengers.forEach((passenger, index) => {
+  sortedPassengers.forEach((passenger, index) => {
     const passengerHeight = 35; // Estimated height per passenger
     checkNewPage(passengerHeight);
 
