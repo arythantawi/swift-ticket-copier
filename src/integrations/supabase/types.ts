@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          button_text: string | null
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          button_text?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          button_text?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           created_at: string
@@ -94,6 +133,78 @@ export type Database = {
           special_requests?: string | null
           total_price?: number
           travel_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      faqs: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promos: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_text: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          promo_code: string | null
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_text?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_text?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          promo_code?: string | null
+          start_date?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: []

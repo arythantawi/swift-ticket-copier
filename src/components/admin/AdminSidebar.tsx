@@ -9,7 +9,8 @@ import {
   CircleDollarSign,
   Users,
   PieChart,
-  Settings
+  Settings,
+  LayoutGrid
 } from 'lucide-react';
 import {
   Sidebar,
@@ -43,6 +44,7 @@ const managementItems = [
 
 const websiteItems = [
   { id: 'schedules', title: 'Jadwal', icon: Calendar },
+  { id: 'content', title: 'Konten', icon: LayoutGrid },
 ];
 
 const reportItems = [

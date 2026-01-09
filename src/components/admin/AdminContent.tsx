@@ -1,0 +1,727 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  RefreshCw,
+  Image,
+  Tag,
+  HelpCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from 'sonner';
+
+// Types
+interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  button_text: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+interface Promo {
+  id: string;
+  title: string;
+  description: string | null;
+  discount_text: string | null;
+  promo_code: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
+}
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+const AdminContent = () => {
+  const [activeTab, setActiveTab] = useState('banners');
+  
+  // Banners state
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
+  const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [bannerForm, setBannerForm] = useState({
+    title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true
+  });
+
+  // Promos state
+  const [promos, setPromos] = useState<Promo[]>([]);
+  const [promosLoading, setPromosLoading] = useState(true);
+  const [promoDialogOpen, setPromoDialogOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<Promo | null>(null);
+  const [promoForm, setPromoForm] = useState({
+    title: '', description: '', discount_text: '', promo_code: '', start_date: '', end_date: '', is_active: true
+  });
+
+  // FAQs state
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(true);
+  const [faqDialogOpen, setFaqDialogOpen] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
+  const [faqForm, setFaqForm] = useState({
+    question: '', answer: '', category: 'Umum', display_order: 0, is_active: true
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch functions
+  const fetchBanners = async () => {
+    setBannersLoading(true);
+    const { data, error } = await supabase
+      .from('banners')
+      .select('*')
+      .order('display_order');
+    if (!error) setBanners(data || []);
+    setBannersLoading(false);
+  };
+
+  const fetchPromos = async () => {
+    setPromosLoading(true);
+    const { data, error } = await supabase
+      .from('promos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) setPromos(data || []);
+    setPromosLoading(false);
+  };
+
+  const fetchFaqs = async () => {
+    setFaqsLoading(true);
+    const { data, error } = await supabase
+      .from('faqs')
+      .select('*')
+      .order('display_order');
+    if (!error) setFaqs(data || []);
+    setFaqsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchBanners();
+    fetchPromos();
+    fetchFaqs();
+  }, []);
+
+  // Banner handlers
+  const openBannerDialog = (banner?: Banner) => {
+    if (banner) {
+      setEditingBanner(banner);
+      setBannerForm({
+        title: banner.title,
+        subtitle: banner.subtitle || '',
+        image_url: banner.image_url || '',
+        link_url: banner.link_url || '',
+        button_text: banner.button_text || '',
+        display_order: banner.display_order,
+        is_active: banner.is_active,
+      });
+    } else {
+      setEditingBanner(null);
+      setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true });
+    }
+    setBannerDialogOpen(true);
+  };
+
+  const saveBanner = async () => {
+    if (!bannerForm.title) {
+      toast.error('Judul banner wajib diisi');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = {
+        title: bannerForm.title,
+        subtitle: bannerForm.subtitle || null,
+        image_url: bannerForm.image_url || null,
+        link_url: bannerForm.link_url || null,
+        button_text: bannerForm.button_text || null,
+        display_order: bannerForm.display_order,
+        is_active: bannerForm.is_active,
+      };
+      if (editingBanner) {
+        const { error } = await supabase.from('banners').update(data).eq('id', editingBanner.id);
+        if (error) throw error;
+        toast.success('Banner berhasil diperbarui');
+      } else {
+        const { error } = await supabase.from('banners').insert([data]);
+        if (error) throw error;
+        toast.success('Banner berhasil ditambahkan');
+      }
+      setBannerDialogOpen(false);
+      fetchBanners();
+    } catch (error) {
+      toast.error('Gagal menyimpan banner');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteBanner = async (id: string) => {
+    const { error } = await supabase.from('banners').delete().eq('id', id);
+    if (error) toast.error('Gagal menghapus banner');
+    else { toast.success('Banner dihapus'); fetchBanners(); }
+  };
+
+  const toggleBannerActive = async (banner: Banner) => {
+    await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id);
+    fetchBanners();
+  };
+
+  // Promo handlers
+  const openPromoDialog = (promo?: Promo) => {
+    if (promo) {
+      setEditingPromo(promo);
+      setPromoForm({
+        title: promo.title,
+        description: promo.description || '',
+        discount_text: promo.discount_text || '',
+        promo_code: promo.promo_code || '',
+        start_date: promo.start_date || '',
+        end_date: promo.end_date || '',
+        is_active: promo.is_active,
+      });
+    } else {
+      setEditingPromo(null);
+      setPromoForm({ title: '', description: '', discount_text: '', promo_code: '', start_date: '', end_date: '', is_active: true });
+    }
+    setPromoDialogOpen(true);
+  };
+
+  const savePromo = async () => {
+    if (!promoForm.title) {
+      toast.error('Judul promo wajib diisi');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = {
+        title: promoForm.title,
+        description: promoForm.description || null,
+        discount_text: promoForm.discount_text || null,
+        promo_code: promoForm.promo_code || null,
+        start_date: promoForm.start_date || null,
+        end_date: promoForm.end_date || null,
+        is_active: promoForm.is_active,
+      };
+      if (editingPromo) {
+        const { error } = await supabase.from('promos').update(data).eq('id', editingPromo.id);
+        if (error) throw error;
+        toast.success('Promo berhasil diperbarui');
+      } else {
+        const { error } = await supabase.from('promos').insert([data]);
+        if (error) throw error;
+        toast.success('Promo berhasil ditambahkan');
+      }
+      setPromoDialogOpen(false);
+      fetchPromos();
+    } catch (error) {
+      toast.error('Gagal menyimpan promo');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deletePromo = async (id: string) => {
+    const { error } = await supabase.from('promos').delete().eq('id', id);
+    if (error) toast.error('Gagal menghapus promo');
+    else { toast.success('Promo dihapus'); fetchPromos(); }
+  };
+
+  const togglePromoActive = async (promo: Promo) => {
+    await supabase.from('promos').update({ is_active: !promo.is_active }).eq('id', promo.id);
+    fetchPromos();
+  };
+
+  // FAQ handlers
+  const openFaqDialog = (faq?: FAQ) => {
+    if (faq) {
+      setEditingFaq(faq);
+      setFaqForm({
+        question: faq.question,
+        answer: faq.answer,
+        category: faq.category || 'Umum',
+        display_order: faq.display_order,
+        is_active: faq.is_active,
+      });
+    } else {
+      setEditingFaq(null);
+      setFaqForm({ question: '', answer: '', category: 'Umum', display_order: 0, is_active: true });
+    }
+    setFaqDialogOpen(true);
+  };
+
+  const saveFaq = async () => {
+    if (!faqForm.question || !faqForm.answer) {
+      toast.error('Pertanyaan dan jawaban wajib diisi');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = {
+        question: faqForm.question,
+        answer: faqForm.answer,
+        category: faqForm.category || 'Umum',
+        display_order: faqForm.display_order,
+        is_active: faqForm.is_active,
+      };
+      if (editingFaq) {
+        const { error } = await supabase.from('faqs').update(data).eq('id', editingFaq.id);
+        if (error) throw error;
+        toast.success('FAQ berhasil diperbarui');
+      } else {
+        const { error } = await supabase.from('faqs').insert([data]);
+        if (error) throw error;
+        toast.success('FAQ berhasil ditambahkan');
+      }
+      setFaqDialogOpen(false);
+      fetchFaqs();
+    } catch (error) {
+      toast.error('Gagal menyimpan FAQ');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteFaq = async (id: string) => {
+    const { error } = await supabase.from('faqs').delete().eq('id', id);
+    if (error) toast.error('Gagal menghapus FAQ');
+    else { toast.success('FAQ dihapus'); fetchFaqs(); }
+  };
+
+  const toggleFaqActive = async (faq: FAQ) => {
+    await supabase.from('faqs').update({ is_active: !faq.is_active }).eq('id', faq.id);
+    fetchFaqs();
+  };
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsTrigger value="banners" className="gap-2">
+            <Image className="w-4 h-4" />
+            Banner
+          </TabsTrigger>
+          <TabsTrigger value="promos" className="gap-2">
+            <Tag className="w-4 h-4" />
+            Promo
+          </TabsTrigger>
+          <TabsTrigger value="faqs" className="gap-2">
+            <HelpCircle className="w-4 h-4" />
+            FAQ
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Banners Tab */}
+        <TabsContent value="banners" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Manajemen Banner</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetchBanners}>
+                <RefreshCw className={`w-4 h-4 ${bannersLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={() => openBannerDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Banner
+              </Button>
+            </div>
+          </div>
+
+          {bannersLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto" />
+            </div>
+          ) : banners.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Belum ada banner</div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Urutan</TableHead>
+                    <TableHead>Judul</TableHead>
+                    <TableHead>Subtitle</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {banners.map((banner) => (
+                    <TableRow key={banner.id}>
+                      <TableCell>{banner.display_order}</TableCell>
+                      <TableCell className="font-medium">{banner.title}</TableCell>
+                      <TableCell className="text-muted-foreground">{banner.subtitle || '-'}</TableCell>
+                      <TableCell>
+                        <Switch checked={banner.is_active} onCheckedChange={() => toggleBannerActive(banner)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openBannerDialog(banner)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Banner?</AlertDialogTitle>
+                              <AlertDialogDescription>Banner "{banner.title}" akan dihapus permanen.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteBanner(banner.id)}>Hapus</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Promos Tab */}
+        <TabsContent value="promos" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Manajemen Promo</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetchPromos}>
+                <RefreshCw className={`w-4 h-4 ${promosLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={() => openPromoDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Promo
+              </Button>
+            </div>
+          </div>
+
+          {promosLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto" />
+            </div>
+          ) : promos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Belum ada promo</div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Judul</TableHead>
+                    <TableHead>Diskon</TableHead>
+                    <TableHead>Kode</TableHead>
+                    <TableHead>Periode</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {promos.map((promo) => (
+                    <TableRow key={promo.id}>
+                      <TableCell className="font-medium">{promo.title}</TableCell>
+                      <TableCell><Badge variant="secondary">{promo.discount_text || '-'}</Badge></TableCell>
+                      <TableCell className="font-mono">{promo.promo_code || '-'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {promo.start_date && promo.end_date 
+                          ? `${promo.start_date} - ${promo.end_date}`
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Switch checked={promo.is_active} onCheckedChange={() => togglePromoActive(promo)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openPromoDialog(promo)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Promo?</AlertDialogTitle>
+                              <AlertDialogDescription>Promo "{promo.title}" akan dihapus permanen.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deletePromo(promo.id)}>Hapus</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* FAQs Tab */}
+        <TabsContent value="faqs" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Manajemen FAQ</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetchFaqs}>
+                <RefreshCw className={`w-4 h-4 ${faqsLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={() => openFaqDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah FAQ
+              </Button>
+            </div>
+          </div>
+
+          {faqsLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto" />
+            </div>
+          ) : faqs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Belum ada FAQ</div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Urutan</TableHead>
+                    <TableHead>Pertanyaan</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {faqs.map((faq) => (
+                    <TableRow key={faq.id}>
+                      <TableCell>{faq.display_order}</TableCell>
+                      <TableCell className="font-medium max-w-md truncate">{faq.question}</TableCell>
+                      <TableCell><Badge variant="outline">{faq.category}</Badge></TableCell>
+                      <TableCell>
+                        <Switch checked={faq.is_active} onCheckedChange={() => toggleFaqActive(faq)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openFaqDialog(faq)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus FAQ?</AlertDialogTitle>
+                              <AlertDialogDescription>FAQ ini akan dihapus permanen.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteFaq(faq.id)}>Hapus</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Banner Dialog */}
+      <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBanner ? 'Edit Banner' : 'Tambah Banner'}</DialogTitle>
+            <DialogDescription>Kelola banner untuk tampilan website</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Judul *</Label>
+              <Input value={bannerForm.title} onChange={(e) => setBannerForm({...bannerForm, title: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Subtitle</Label>
+              <Input value={bannerForm.subtitle} onChange={(e) => setBannerForm({...bannerForm, subtitle: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>URL Gambar</Label>
+              <Input value={bannerForm.image_url} onChange={(e) => setBannerForm({...bannerForm, image_url: e.target.value})} placeholder="https://..." />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>URL Link</Label>
+                <Input value={bannerForm.link_url} onChange={(e) => setBannerForm({...bannerForm, link_url: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Teks Tombol</Label>
+                <Input value={bannerForm.button_text} onChange={(e) => setBannerForm({...bannerForm, button_text: e.target.value})} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Urutan</Label>
+                <Input type="number" value={bannerForm.display_order} onChange={(e) => setBannerForm({...bannerForm, display_order: parseInt(e.target.value) || 0})} />
+              </div>
+              <div className="flex items-center justify-between pt-6">
+                <Label>Aktif</Label>
+                <Switch checked={bannerForm.is_active} onCheckedChange={(checked) => setBannerForm({...bannerForm, is_active: checked})} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBannerDialogOpen(false)}>Batal</Button>
+            <Button onClick={saveBanner} disabled={isSaving}>
+              {isSaving && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promo Dialog */}
+      <Dialog open={promoDialogOpen} onOpenChange={setPromoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingPromo ? 'Edit Promo' : 'Tambah Promo'}</DialogTitle>
+            <DialogDescription>Kelola promosi untuk pelanggan</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Judul *</Label>
+              <Input value={promoForm.title} onChange={(e) => setPromoForm({...promoForm, title: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Deskripsi</Label>
+              <Textarea value={promoForm.description} onChange={(e) => setPromoForm({...promoForm, description: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Teks Diskon</Label>
+                <Input value={promoForm.discount_text} onChange={(e) => setPromoForm({...promoForm, discount_text: e.target.value})} placeholder="10% OFF" />
+              </div>
+              <div className="space-y-2">
+                <Label>Kode Promo</Label>
+                <Input value={promoForm.promo_code} onChange={(e) => setPromoForm({...promoForm, promo_code: e.target.value})} placeholder="DISKON10" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tanggal Mulai</Label>
+                <Input type="date" value={promoForm.start_date} onChange={(e) => setPromoForm({...promoForm, start_date: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tanggal Berakhir</Label>
+                <Input type="date" value={promoForm.end_date} onChange={(e) => setPromoForm({...promoForm, end_date: e.target.value})} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Aktif</Label>
+              <Switch checked={promoForm.is_active} onCheckedChange={(checked) => setPromoForm({...promoForm, is_active: checked})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoDialogOpen(false)}>Batal</Button>
+            <Button onClick={savePromo} disabled={isSaving}>
+              {isSaving && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* FAQ Dialog */}
+      <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingFaq ? 'Edit FAQ' : 'Tambah FAQ'}</DialogTitle>
+            <DialogDescription>Kelola pertanyaan yang sering ditanyakan</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Pertanyaan *</Label>
+              <Input value={faqForm.question} onChange={(e) => setFaqForm({...faqForm, question: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Jawaban *</Label>
+              <Textarea rows={4} value={faqForm.answer} onChange={(e) => setFaqForm({...faqForm, answer: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Kategori</Label>
+                <Input value={faqForm.category} onChange={(e) => setFaqForm({...faqForm, category: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Urutan</Label>
+                <Input type="number" value={faqForm.display_order} onChange={(e) => setFaqForm({...faqForm, display_order: parseInt(e.target.value) || 0})} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Aktif</Label>
+              <Switch checked={faqForm.is_active} onCheckedChange={(checked) => setFaqForm({...faqForm, is_active: checked})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFaqDialogOpen(false)}>Batal</Button>
+            <Button onClick={saveFaq} disabled={isSaving}>
+              {isSaving && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminContent;

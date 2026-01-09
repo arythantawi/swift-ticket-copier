@@ -13,6 +13,7 @@ import AdminSchedules from '@/components/admin/AdminSchedules';
 import AdminOperations from '@/components/admin/AdminOperations';
 import AdminManifest from '@/components/admin/AdminManifest';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
+import AdminContent from '@/components/admin/AdminContent';
 import ReportFinance from '@/components/admin/ReportFinance';
 import ReportPassengers from '@/components/admin/ReportPassengers';
 
@@ -38,6 +39,8 @@ const Admin = () => {
         return <AdminOperations />;
       case 'analytics':
         return <AdminAnalytics />;
+      case 'content':
+        return <AdminContent />;
       case 'report-finance':
         return <ReportFinance />;
       case 'report-passengers':
@@ -54,6 +57,7 @@ const Admin = () => {
       case 'schedules': return 'Jadwal';
       case 'operations': return 'Operasional';
       case 'analytics': return 'Analisa Data';
+      case 'content': return 'Manajemen Konten';
       case 'report-finance': return 'Laporan Keuangan';
       case 'report-passengers': return 'Laporan Penumpang';
       default: return 'Dashboard';
