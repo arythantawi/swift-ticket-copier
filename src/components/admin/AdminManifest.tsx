@@ -139,9 +139,9 @@ const AdminManifest = () => {
     return matchesDate && matchesRoute;
   });
 
-  // Group bookings by pickup time and route
+  // Group bookings by pickup time and full route (from, via, to)
   const groupedBookings = filteredBookings.reduce((acc, booking) => {
-    const key = `${booking.pickup_time}-${booking.route_from}-${booking.route_to}`;
+    const key = `${booking.pickup_time}-${booking.route_from}-${booking.route_via || ''}-${booking.route_to}`;
     if (!acc[key]) {
       acc[key] = [];
     }
