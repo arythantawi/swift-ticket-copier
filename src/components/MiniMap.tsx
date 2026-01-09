@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Crosshair } from 'lucide-react';
 
 // Fix for default marker icon
 const markerIcon = new L.Icon({
@@ -19,6 +20,8 @@ interface MiniMapProps {
   lng: number;
   address?: string;
   onLocationChange?: (lat: number, lng: number) => void;
+  originalLat?: number;
+  originalLng?: number;
 }
 
 // Component to recenter map when coords change
@@ -30,6 +33,42 @@ const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
   }, [lat, lng, map]);
   
   return null;
+};
+
+// Center button component
+const CenterButton = ({ 
+  originalLat, 
+  originalLng, 
+  currentLat,
+  currentLng,
+  onCenter 
+}: { 
+  originalLat: number; 
+  originalLng: number;
+  currentLat: number;
+  currentLng: number;
+  onCenter: () => void;
+}) => {
+  const map = useMap();
+  const isAtOriginal = Math.abs(currentLat - originalLat) < 0.0001 && Math.abs(currentLng - originalLng) < 0.0001;
+  
+  const handleCenter = () => {
+    map.setView([originalLat, originalLng], 16, { animate: true });
+    onCenter();
+  };
+
+  if (isAtOriginal) return null;
+
+  return (
+    <button
+      onClick={handleCenter}
+      className="absolute top-2 left-2 z-[1000] bg-white dark:bg-gray-800 shadow-lg rounded-lg px-3 py-2 flex items-center gap-2 text-sm font-medium text-primary hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-600"
+      title="Kembali ke lokasi GPS awal"
+    >
+      <Crosshair className="w-4 h-4" />
+      <span className="hidden sm:inline">Lokasi Awal</span>
+    </button>
+  );
 };
 
 // Draggable marker component
@@ -77,7 +116,16 @@ const DraggableMarker = ({
   );
 };
 
-const MiniMap = ({ lat, lng, address, onLocationChange }: MiniMapProps) => {
+const MiniMap = ({ lat, lng, address, onLocationChange, originalLat, originalLng }: MiniMapProps) => {
+  const [origLat] = useState(originalLat ?? lat);
+  const [origLng] = useState(originalLng ?? lng);
+
+  const handleCenterToOriginal = () => {
+    if (onLocationChange) {
+      onLocationChange(origLat, origLng);
+    }
+  };
+
   return (
     <div className="w-full h-[250px] rounded-lg overflow-hidden border border-green-300 dark:border-green-700 shadow-sm relative">
       <MapContainer
@@ -93,6 +141,13 @@ const MiniMap = ({ lat, lng, address, onLocationChange }: MiniMapProps) => {
         />
         <ZoomControl position="topright" />
         <RecenterMap lat={lat} lng={lng} />
+        <CenterButton 
+          originalLat={origLat} 
+          originalLng={origLng}
+          currentLat={lat}
+          currentLng={lng}
+          onCenter={handleCenterToOriginal}
+        />
         <DraggableMarker 
           lat={lat} 
           lng={lng} 
