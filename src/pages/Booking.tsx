@@ -928,8 +928,8 @@ const Booking = () => {
                         onClick={() => handleDropoffAddressModeChange('gps')}
                         className="flex-1"
                       >
-                        <Navigation className="w-4 h-4 mr-2" />
-                        Pakai GPS
+                        <Map className="w-4 h-4 mr-2" />
+                        Pilih di Peta
                       </Button>
                       <Button
                         type="button"
@@ -943,99 +943,77 @@ const Booking = () => {
                       </Button>
                     </div>
 
-                    {/* Dropoff GPS Mode */}
+                    {/* Dropoff Map Mode - Like Gojek */}
                     {dropoffAddressMode === 'gps' && (
                       <div className="space-y-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleGetDropoffLocation}
-                          disabled={isGettingDropoffLocation}
-                          className="w-full"
-                        >
-                          {isGettingDropoffLocation ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Mencari lokasi...
-                            </>
-                          ) : (
-                            <>
-                              <Navigation className="w-4 h-4 mr-2" />
-                              {dropoffGpsCoords ? 'Perbarui Lokasi GPS' : 'Tentukan Lokasi Pengantaran'}
-                            </>
-                          )}
-                        </Button>
+                        {/* Map for selecting location */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span className="text-xs text-muted-foreground">
+                              Cari alamat atau geser marker untuk menentukan lokasi pengantaran
+                            </span>
+                          </div>
+                          <Suspense fallback={
+                            <div className="h-[280px] bg-secondary/50 rounded-lg flex items-center justify-center">
+                              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            </div>
+                          }>
+                            <MiniMap 
+                              lat={dropoffGpsCoords?.lat ?? -7.2575}
+                              lng={dropoffGpsCoords?.lng ?? 112.7521}
+                              originalLat={dropoffGpsCoords?.lat ?? -7.2575}
+                              originalLng={dropoffGpsCoords?.lng ?? 112.7521}
+                              address={formData.dropoffAddress}
+                              onLocationChange={handleDropoffMarkerDrag}
+                            />
+                          </Suspense>
+                        </div>
                         
-                        {dropoffGpsCoords && (
-                          <>
-                            <div className="bg-secondary/50 rounded-xl p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-foreground">Lokasi Pengantaran Terdeteksi</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setIsEditingDropoffGpsAddress(!isEditingDropoffGpsAddress)}
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              
-                              {isEditingDropoffGpsAddress ? (
-                                <Textarea
-                                  name="dropoffAddress"
-                                  value={formData.dropoffAddress}
-                                  onChange={handleInputChange}
-                                  className="min-h-[100px] text-sm"
-                                />
-                              ) : (
-                                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans">
-                                  {formData.dropoffAddress}
-                                </pre>
-                              )}
-                              
-                              <div className="mt-3">
-                                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                                  Detail tambahan (nama gedung, lantai, dll):
-                                </label>
-                                <Input
-                                  value={dropoffAdditionalDetails}
-                                  onChange={(e) => setDropoffAdditionalDetails(e.target.value)}
-                                  placeholder="Contoh: Gedung A Lt. 3, dekat pintu utara"
-                                  className="text-sm"
-                                />
-                              </div>
+                        {formData.dropoffAddress && (
+                          <div className="bg-secondary/50 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-foreground">📍 Lokasi Pengantaran Dipilih</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsEditingDropoffGpsAddress(!isEditingDropoffGpsAddress)}
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </Button>
                             </div>
                             
-                            {/* Dropoff Mini Map */}
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Map className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  Geser marker untuk koreksi lokasi pengantaran
-                                </span>
-                              </div>
-                              <Suspense fallback={
-                                <div className="h-[200px] bg-secondary/50 rounded-lg flex items-center justify-center">
-                                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                                </div>
-                              }>
-                                <MiniMap 
-                                  lat={dropoffGpsCoords.lat}
-                                  lng={dropoffGpsCoords.lng}
-                                  originalLat={dropoffGpsCoords.lat}
-                                  originalLng={dropoffGpsCoords.lng}
-                                  address={formData.dropoffAddress}
-                                  onLocationChange={handleDropoffMarkerDrag}
-                                />
-                              </Suspense>
+                            {isEditingDropoffGpsAddress ? (
+                              <Textarea
+                                name="dropoffAddress"
+                                value={formData.dropoffAddress}
+                                onChange={handleInputChange}
+                                className="min-h-[100px] text-sm"
+                              />
+                            ) : (
+                              <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans">
+                                {formData.dropoffAddress}
+                              </pre>
+                            )}
+                            
+                            <div className="mt-3">
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                Detail tambahan (nama gedung, lantai, dll):
+                              </label>
+                              <Input
+                                value={dropoffAdditionalDetails}
+                                onChange={(e) => setDropoffAdditionalDetails(e.target.value)}
+                                placeholder="Contoh: Gedung A Lt. 3, dekat pintu utara"
+                                className="text-sm"
+                              />
                             </div>
-                          </>
+                          </div>
                         )}
                         
-                        {!dropoffGpsCoords && (
-                          <p className="text-xs text-muted-foreground text-center">
-                            💡 Gunakan GPS untuk lokasi pengantaran yang lebih akurat
+                        {!formData.dropoffAddress && (
+                          <p className="text-xs text-muted-foreground text-center bg-secondary/30 rounded-lg py-2">
+                            💡 Cari alamat di kolom pencarian atau geser marker di peta
                           </p>
                         )}
                       </div>
