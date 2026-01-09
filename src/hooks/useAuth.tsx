@@ -198,10 +198,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.mfa.unenroll({ factorId: factor.id });
     }
 
-    // Now enroll a new factor
+    // Now enroll a new factor with unique name to avoid conflicts
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'Admin TOTP',
+      friendlyName: `Admin TOTP ${Date.now()}`,
     });
 
     if (error) {
@@ -275,10 +275,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Now enroll a new factor
+    // Now enroll a new factor with unique name to avoid conflicts
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'Admin TOTP',
+      friendlyName: `Admin TOTP ${Date.now()}`,
     });
 
     if (error) {
