@@ -80,31 +80,61 @@ const Booking = () => {
     }
 
     setIsGettingLocation(true);
+    toast.info('Mencari lokasi paling akurat...');
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setGpsCoords({ lat: latitude, lng: longitude });
+    let bestPosition: GeolocationPosition | null = null;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    // Use watchPosition for better accuracy - it keeps updating until we get a good fix
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        attempts++;
+        const accuracy = position.coords.accuracy;
         
-        // Create Google Maps link for the location
-        const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
-        const locationText = `📍 Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n🔗 ${mapsLink}`;
-        
-        setFormData(prev => ({ ...prev, pickupAddress: locationText }));
-        setIsGettingLocation(false);
-        toast.success('Lokasi berhasil didapatkan!');
+        console.log(`GPS attempt ${attempts}: accuracy ${accuracy}m`);
+
+        // Keep the position with best accuracy
+        if (!bestPosition || accuracy < bestPosition.coords.accuracy) {
+          bestPosition = position;
+        }
+
+        // If accuracy is good enough (< 50m) or we've tried enough times, use it
+        if (accuracy < 50 || attempts >= maxAttempts) {
+          navigator.geolocation.clearWatch(watchId);
+          
+          const { latitude, longitude } = bestPosition.coords;
+          const finalAccuracy = Math.round(bestPosition.coords.accuracy);
+          
+          setGpsCoords({ lat: latitude, lng: longitude });
+          
+          // Create Google Maps link for the location
+          const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+          const locationText = `📍 Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n📏 Akurasi: ±${finalAccuracy} meter\n🔗 ${mapsLink}`;
+          
+          setFormData(prev => ({ ...prev, pickupAddress: locationText }));
+          setIsGettingLocation(false);
+          
+          if (finalAccuracy > 100) {
+            toast.warning(`Lokasi didapat dengan akurasi ±${finalAccuracy}m. Untuk akurasi lebih baik, coba di area terbuka.`);
+          } else {
+            toast.success(`Lokasi berhasil didapatkan! (akurasi ±${finalAccuracy}m)`);
+          }
+        }
       },
       (error) => {
+        navigator.geolocation.clearWatch(watchId);
         setIsGettingLocation(false);
+        
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            toast.error('Akses lokasi ditolak. Silakan izinkan akses lokasi di browser Anda.');
+            toast.error('Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.');
             break;
           case error.POSITION_UNAVAILABLE:
-            toast.error('Informasi lokasi tidak tersedia.');
+            toast.error('Informasi lokasi tidak tersedia. Pastikan GPS aktif.');
             break;
           case error.TIMEOUT:
-            toast.error('Waktu permintaan lokasi habis.');
+            toast.error('Waktu permintaan lokasi habis. Coba lagi di area terbuka.');
             break;
           default:
             toast.error('Gagal mendapatkan lokasi.');
@@ -112,10 +142,30 @@ const Booking = () => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000,
         maximumAge: 0,
       }
     );
+
+    // Safety timeout - stop watching after 15 seconds if still running
+    setTimeout(() => {
+      if (attempts > 0 && bestPosition) {
+        navigator.geolocation.clearWatch(watchId);
+        
+        const { latitude, longitude } = bestPosition.coords;
+        const finalAccuracy = Math.round(bestPosition.coords.accuracy);
+        
+        setGpsCoords({ lat: latitude, lng: longitude });
+        
+        const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+        const locationText = `📍 Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n📏 Akurasi: ±${finalAccuracy} meter\n🔗 ${mapsLink}`;
+        
+        setFormData(prev => ({ ...prev, pickupAddress: locationText }));
+        setIsGettingLocation(false);
+        
+        toast.warning(`Lokasi didapat dengan akurasi ±${finalAccuracy}m.`);
+      }
+    }, 16000);
   };
 
   const handleAddressModeChange = (mode: AddressMode) => {
