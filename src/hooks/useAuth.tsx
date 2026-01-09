@@ -17,6 +17,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const withTimeout = async <T,>(promise: Promise<T>, ms = 5000): Promise<T> => {
+  let timeoutId: number | undefined;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error('timeout')), ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -25,14 +38,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminRole = async (userId: string): Promise<boolean> => {
     try {
-      // Use direct query instead of RPC for more reliable results
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
-      
+
       if (error) {
         console.error('Error checking admin role:', error);
         return false;
@@ -57,12 +69,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (existingSession?.user) {
           setSession(existingSession);
           setUser(existingSession.user);
-          
-          // Check admin status BEFORE setting isLoading to false
-          const adminStatus = await checkAdminRole(existingSession.user.id);
-          if (isMounted) {
-            setIsAdmin(adminStatus);
-            setIsLoading(false);
+
+          try {
+            const adminStatus = await withTimeout(checkAdminRole(existingSession.user.id), 5000);
+            if (isMounted) setIsAdmin(adminStatus);
+          } catch (e) {
+            console.error('Admin role check timed out/failed:', e);
+            if (isMounted) setIsAdmin(false);
+          } finally {
+            if (isMounted) setIsLoading(false);
           }
         } else {
           setSession(null);
@@ -94,11 +109,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(sess?.user ?? null);
 
       if (sess?.user) {
-        // Check admin status before completing the state change
-        const adminStatus = await checkAdminRole(sess.user.id);
-        if (isMounted) {
-          setIsAdmin(adminStatus);
-          setIsLoading(false);
+        // Check admin status before completing the state change (with timeout so UI never hangs)
+        try {
+          const adminStatus = await withTimeout(checkAdminRole(sess.user.id), 5000);
+          if (isMounted) setIsAdmin(adminStatus);
+        } catch (e) {
+          console.error('Admin role check timed out/failed:', e);
+          if (isMounted) setIsAdmin(false);
+        } finally {
+          if (isMounted) setIsLoading(false);
         }
       } else {
         setIsAdmin(false);
