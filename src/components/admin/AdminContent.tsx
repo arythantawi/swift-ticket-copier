@@ -7,7 +7,9 @@ import {
   RefreshCw,
   Image,
   Tag,
-  HelpCircle
+  HelpCircle,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +45,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from 'sonner';
 
 // Types
@@ -77,6 +86,18 @@ interface FAQ {
   is_active: boolean;
 }
 
+interface Testimonial {
+  id: string;
+  customer_name: string;
+  customer_photo_url: string | null;
+  customer_location: string | null;
+  rating: number;
+  testimonial_text: string;
+  route_taken: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
 const AdminContent = () => {
   const [activeTab, setActiveTab] = useState('banners');
   
@@ -105,6 +126,15 @@ const AdminContent = () => {
   const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
   const [faqForm, setFaqForm] = useState({
     question: '', answer: '', category: 'Umum', display_order: 0, is_active: true
+  });
+
+  // Testimonials state
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+  const [testimonialForm, setTestimonialForm] = useState({
+    customer_name: '', customer_photo_url: '', customer_location: '', rating: 5, testimonial_text: '', route_taken: '', display_order: 0, is_active: true
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -140,10 +170,21 @@ const AdminContent = () => {
     setFaqsLoading(false);
   };
 
+  const fetchTestimonials = async () => {
+    setTestimonialsLoading(true);
+    const { data, error } = await supabase
+      .from('testimonials')
+      .select('*')
+      .order('display_order');
+    if (!error) setTestimonials(data || []);
+    setTestimonialsLoading(false);
+  };
+
   useEffect(() => {
     fetchBanners();
     fetchPromos();
     fetchFaqs();
+    fetchTestimonials();
   }, []);
 
   // Banner handlers
@@ -337,21 +378,105 @@ const AdminContent = () => {
     fetchFaqs();
   };
 
+  // Testimonial handlers
+  const openTestimonialDialog = (testimonial?: Testimonial) => {
+    if (testimonial) {
+      setEditingTestimonial(testimonial);
+      setTestimonialForm({
+        customer_name: testimonial.customer_name,
+        customer_photo_url: testimonial.customer_photo_url || '',
+        customer_location: testimonial.customer_location || '',
+        rating: testimonial.rating,
+        testimonial_text: testimonial.testimonial_text,
+        route_taken: testimonial.route_taken || '',
+        display_order: testimonial.display_order,
+        is_active: testimonial.is_active,
+      });
+    } else {
+      setEditingTestimonial(null);
+      setTestimonialForm({ customer_name: '', customer_photo_url: '', customer_location: '', rating: 5, testimonial_text: '', route_taken: '', display_order: 0, is_active: true });
+    }
+    setTestimonialDialogOpen(true);
+  };
+
+  const saveTestimonial = async () => {
+    if (!testimonialForm.customer_name || !testimonialForm.testimonial_text) {
+      toast.error('Nama pelanggan dan testimoni wajib diisi');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = {
+        customer_name: testimonialForm.customer_name,
+        customer_photo_url: testimonialForm.customer_photo_url || null,
+        customer_location: testimonialForm.customer_location || null,
+        rating: testimonialForm.rating,
+        testimonial_text: testimonialForm.testimonial_text,
+        route_taken: testimonialForm.route_taken || null,
+        display_order: testimonialForm.display_order,
+        is_active: testimonialForm.is_active,
+      };
+      if (editingTestimonial) {
+        const { error } = await supabase.from('testimonials').update(data).eq('id', editingTestimonial.id);
+        if (error) throw error;
+        toast.success('Testimoni berhasil diperbarui');
+      } else {
+        const { error } = await supabase.from('testimonials').insert([data]);
+        if (error) throw error;
+        toast.success('Testimoni berhasil ditambahkan');
+      }
+      setTestimonialDialogOpen(false);
+      fetchTestimonials();
+    } catch (error) {
+      toast.error('Gagal menyimpan testimoni');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteTestimonial = async (id: string) => {
+    const { error } = await supabase.from('testimonials').delete().eq('id', id);
+    if (error) toast.error('Gagal menghapus testimoni');
+    else { toast.success('Testimoni dihapus'); fetchTestimonials(); }
+  };
+
+  const toggleTestimonialActive = async (testimonial: Testimonial) => {
+    await supabase.from('testimonials').update({ is_active: !testimonial.is_active }).eq('id', testimonial.id);
+    fetchTestimonials();
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }).map((_, index) => (
+      <Star
+        key={index}
+        className={`w-4 h-4 ${
+          index < rating 
+            ? 'text-yellow-400 fill-yellow-400' 
+            : 'text-muted-foreground/30'
+        }`}
+      />
+    ));
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="banners" className="gap-2">
             <Image className="w-4 h-4" />
-            Banner
+            <span className="hidden sm:inline">Banner</span>
           </TabsTrigger>
           <TabsTrigger value="promos" className="gap-2">
             <Tag className="w-4 h-4" />
-            Promo
+            <span className="hidden sm:inline">Promo</span>
           </TabsTrigger>
           <TabsTrigger value="faqs" className="gap-2">
             <HelpCircle className="w-4 h-4" />
-            FAQ
+            <span className="hidden sm:inline">FAQ</span>
+          </TabsTrigger>
+          <TabsTrigger value="testimonials" className="gap-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Testimoni</span>
           </TabsTrigger>
         </TabsList>
 
@@ -576,6 +701,86 @@ const AdminContent = () => {
             </div>
           )}
         </TabsContent>
+
+        {/* Testimonials Tab */}
+        <TabsContent value="testimonials" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Manajemen Testimoni</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetchTestimonials}>
+                <RefreshCw className={`w-4 h-4 ${testimonialsLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={() => openTestimonialDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Tambah Testimoni
+              </Button>
+            </div>
+          </div>
+
+          {testimonialsLoading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto" />
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Belum ada testimoni</div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Urutan</TableHead>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Lokasi</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Rute</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {testimonials.map((testimonial) => (
+                    <TableRow key={testimonial.id}>
+                      <TableCell>{testimonial.display_order}</TableCell>
+                      <TableCell className="font-medium">{testimonial.customer_name}</TableCell>
+                      <TableCell className="text-muted-foreground">{testimonial.customer_location || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-0.5">
+                          {renderStars(testimonial.rating)}
+                        </div>
+                      </TableCell>
+                      <TableCell><Badge variant="outline">{testimonial.route_taken || '-'}</Badge></TableCell>
+                      <TableCell>
+                        <Switch checked={testimonial.is_active} onCheckedChange={() => toggleTestimonialActive(testimonial)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openTestimonialDialog(testimonial)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Testimoni?</AlertDialogTitle>
+                              <AlertDialogDescription>Testimoni dari "{testimonial.customer_name}" akan dihapus permanen.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteTestimonial(testimonial.id)}>Hapus</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Banner Dialog */}
@@ -714,6 +919,82 @@ const AdminContent = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setFaqDialogOpen(false)}>Batal</Button>
             <Button onClick={saveFaq} disabled={isSaving}>
+              {isSaving && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Testimonial Dialog */}
+      <Dialog open={testimonialDialogOpen} onOpenChange={setTestimonialDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingTestimonial ? 'Edit Testimoni' : 'Tambah Testimoni'}</DialogTitle>
+            <DialogDescription>Kelola testimoni dari pelanggan</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nama Pelanggan *</Label>
+                <Input value={testimonialForm.customer_name} onChange={(e) => setTestimonialForm({...testimonialForm, customer_name: e.target.value})} placeholder="Budi Santoso" />
+              </div>
+              <div className="space-y-2">
+                <Label>Lokasi</Label>
+                <Input value={testimonialForm.customer_location} onChange={(e) => setTestimonialForm({...testimonialForm, customer_location: e.target.value})} placeholder="Surabaya" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>URL Foto Pelanggan</Label>
+              <Input value={testimonialForm.customer_photo_url} onChange={(e) => setTestimonialForm({...testimonialForm, customer_photo_url: e.target.value})} placeholder="https://..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <Select value={testimonialForm.rating.toString()} onValueChange={(value) => setTestimonialForm({...testimonialForm, rating: parseInt(value)})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <SelectItem key={rating} value={rating.toString()}>
+                      <div className="flex items-center gap-2">
+                        {Array.from({ length: rating }).map((_, i) => (
+                          <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        ))}
+                        <span className="ml-2">{rating} Bintang</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Testimoni *</Label>
+              <Textarea 
+                rows={4} 
+                value={testimonialForm.testimonial_text} 
+                onChange={(e) => setTestimonialForm({...testimonialForm, testimonial_text: e.target.value})} 
+                placeholder="Tulis testimoni pelanggan..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Rute Perjalanan</Label>
+                <Input value={testimonialForm.route_taken} onChange={(e) => setTestimonialForm({...testimonialForm, route_taken: e.target.value})} placeholder="Surabaya - Denpasar" />
+              </div>
+              <div className="space-y-2">
+                <Label>Urutan</Label>
+                <Input type="number" value={testimonialForm.display_order} onChange={(e) => setTestimonialForm({...testimonialForm, display_order: parseInt(e.target.value) || 0})} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Aktif</Label>
+              <Switch checked={testimonialForm.is_active} onCheckedChange={(checked) => setTestimonialForm({...testimonialForm, is_active: checked})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestimonialDialogOpen(false)}>Batal</Button>
+            <Button onClick={saveTestimonial} disabled={isSaving}>
               {isSaving && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               Simpan
             </Button>

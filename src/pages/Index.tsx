@@ -6,6 +6,7 @@ import Hero from '@/components/Hero';
 import HeroBanner from '@/components/HeroBanner';
 import PromoSection from '@/components/PromoSection';
 import Services from '@/components/Services';
+import StatsCounter from '@/components/StatsCounter';
 import Facilities from '@/components/Facilities';
 import PopularRoutes from '@/components/PopularRoutes';
 import AllRoutes from '@/components/AllRoutes';
@@ -51,6 +52,7 @@ const Index = () => {
         <HeroBanner />
         <PromoSection />
         <Services />
+        <StatsCounter />
         <Facilities />
         <section id="rute">
           <PopularRoutes />
