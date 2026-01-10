@@ -11,6 +11,7 @@ import PopularRoutes from '@/components/PopularRoutes';
 import AllRoutes from '@/components/AllRoutes';
 import PremiumServices from '@/components/PremiumServices';
 import Features from '@/components/Features';
+import Testimonials from '@/components/Testimonials';
 import PaymentInfo from '@/components/PaymentInfo';
 import FAQSection from '@/components/FAQSection';
 import Footer from '@/components/Footer';
@@ -57,6 +58,7 @@ const Index = () => {
         <AllRoutes />
         <PremiumServices />
         <Features />
+        <Testimonials />
         <section id="pembayaran">
           <PaymentInfo />
         </section>

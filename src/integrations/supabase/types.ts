@@ -248,6 +248,48 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          created_at: string
+          customer_location: string | null
+          customer_name: string
+          customer_photo_url: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          rating: number
+          route_taken: string | null
+          testimonial_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_location?: string | null
+          customer_name: string
+          customer_photo_url?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          rating?: number
+          route_taken?: string | null
+          testimonial_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_location?: string | null
+          customer_name?: string
+          customer_photo_url?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          rating?: number
+          route_taken?: string | null
+          testimonial_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trip_operations: {
         Row: {
           created_at: string
