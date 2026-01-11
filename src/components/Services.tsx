@@ -295,7 +295,7 @@ const Services = () => {
                   </p>
 
                   <div className="flex items-center text-primary font-medium text-sm group-hover:gap-3 transition-all duration-300">
-                    <span>Cek Jadwal</span>
+                    <span>Cek Harga</span>
                     <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                   </div>
                 </div>
