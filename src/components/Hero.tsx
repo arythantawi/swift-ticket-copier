@@ -37,12 +37,17 @@ const Hero = () => {
       setShowBadge(true);
 
       try {
-        // Ensure title lines are visible
-        gsap.set([titleLine1Ref.current, titleLine2Ref.current], { 
-          opacity: 1, 
-          y: 0, 
-          clearProps: 'transform' 
-        });
+        // Ensure title lines are visible (filter nulls to avoid GSAP crash)
+        const els = [titleLine1Ref.current, titleLine2Ref.current].filter(
+          (el): el is HTMLDivElement => Boolean(el)
+        );
+        if (els.length) {
+          gsap.set(els, {
+            opacity: 1,
+            y: 0,
+            clearProps: 'transform',
+          });
+        }
       } catch {
         // noop
       }
