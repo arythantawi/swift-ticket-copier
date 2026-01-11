@@ -88,12 +88,82 @@ const services = [
 
 const Services = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const scheduleDialogRef = useRef<HTMLDivElement>(null);
+  const priceDialogRef = useRef<HTMLDivElement>(null);
+  const bookingDialogRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [showSchedule, setShowSchedule] = useState(false);
   const [showPrice, setShowPrice] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>('Jawa - Bali');
   const [openPriceCategory, setOpenPriceCategory] = useState<string | null>('Jawa - Bali');
+
+  // GSAP animation for Schedule Dialog
+  useEffect(() => {
+    if (showSchedule && scheduleDialogRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          '.schedule-header',
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
+        );
+        gsap.fromTo(
+          '.schedule-category',
+          { x: -30, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out', delay: 0.2 }
+        );
+      }, scheduleDialogRef);
+      return () => ctx.revert();
+    }
+  }, [showSchedule]);
+
+  // GSAP animation for Price Dialog
+  useEffect(() => {
+    if (showPrice && priceDialogRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          '.price-header',
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
+        );
+        gsap.fromTo(
+          '.price-category',
+          { x: 30, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out', delay: 0.2 }
+        );
+      }, priceDialogRef);
+      return () => ctx.revert();
+    }
+  }, [showPrice]);
+
+  // GSAP animation for Booking Dialog
+  useEffect(() => {
+    if (showBooking && bookingDialogRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          '.booking-header',
+          { y: -20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
+        );
+        gsap.fromTo(
+          '.booking-step',
+          { y: 30, opacity: 0, scale: 0.95 },
+          { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.12, ease: 'back.out(1.2)', delay: 0.2 }
+        );
+        gsap.fromTo(
+          '.booking-tips',
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', delay: 0.8 }
+        );
+        gsap.fromTo(
+          '.booking-cta',
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out', delay: 1 }
+        );
+      }, bookingDialogRef);
+      return () => ctx.revert();
+    }
+  }, [showBooking]);
 
   const handleServiceClick = (dialogType: string) => {
     if (dialogType === 'schedule') setShowSchedule(true);
@@ -238,127 +308,53 @@ const Services = () => {
       {/* Schedule Dialog */}
       <Dialog open={showSchedule} onOpenChange={setShowSchedule}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-display flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <CalendarClock className="w-5 h-5 text-white" />
-              </div>
-              Jadwal Lengkap Keberangkatan
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
-            {routeCategories.map((category) => (
-              <div
-                key={category.name}
-                className="rounded-xl border border-border overflow-hidden bg-card"
-              >
-                <button
-                  onClick={() => setOpenCategory(openCategory === category.name ? null : category.name)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
+          <div ref={scheduleDialogRef}>
+            <DialogHeader className="schedule-header">
+              <DialogTitle className="text-2xl font-display flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <CalendarClock className="w-5 h-5 text-white" />
+                </div>
+                Jadwal Lengkap Keberangkatan
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+              {routeCategories.map((category) => (
+                <div
+                  key={category.name}
+                  className="schedule-category rounded-xl border border-border overflow-hidden bg-card"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-display font-semibold text-foreground">
-                        {category.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {category.routes.length} rute tersedia
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronDown
-                    className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
-                      openCategory === category.name ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {openCategory === category.name && (
-                  <div className="border-t border-border">
-                    {category.routes.map((route, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors cursor-pointer"
-                        onClick={() => handleSelectRoute(route)}
-                      >
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-2 text-sm md:text-base">
-                            <span className="font-semibold text-foreground">{route.from}</span>
-                            {route.via && (
-                              <>
-                                <span className="text-muted-foreground">→</span>
-                                <span className="text-muted-foreground">{route.via}</span>
-                              </>
-                            )}
-                            <span className="text-muted-foreground">→</span>
-                            <span className="font-semibold text-foreground">{route.to}</span>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        </div>
+                  <button
+                    onClick={() => setOpenCategory(openCategory === category.name ? null : category.name)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-primary" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Price Dialog */}
-      <Dialog open={showPrice} onOpenChange={setShowPrice}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-display flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-white" />
-              </div>
-              Daftar Harga Tiket
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
-            {routeCategories.map((category) => (
-              <div
-                key={category.name}
-                className="rounded-xl border border-border overflow-hidden bg-card"
-              >
-                <button
-                  onClick={() => setOpenPriceCategory(openPriceCategory === category.name ? null : category.name)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                      <Wallet className="w-5 h-5 text-amber-500" />
+                      <div>
+                        <h3 className="font-display font-semibold text-foreground">
+                          {category.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {category.routes.length} rute tersedia
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-display font-semibold text-foreground">
-                        {category.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {category.routes.length} rute tersedia
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronDown
-                    className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
-                      openPriceCategory === category.name ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
+                    <ChevronDown
+                      className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
+                        openCategory === category.name ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
 
-                {openPriceCategory === category.name && (
-                  <div className="border-t border-border">
-                    {category.routes.map((route, idx) => {
-                      const price = getRoutePrice(route.from, route.to);
-                      return (
+                  {openCategory === category.name && (
+                    <div className="border-t border-border">
+                      {category.routes.map((route, idx) => (
                         <div
                           key={idx}
-                          className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors"
+                          className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors cursor-pointer"
+                          onClick={() => handleSelectRoute(route)}
                         >
                           <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-2 text-sm md:text-base">
@@ -372,17 +368,95 @@ const Services = () => {
                               <span className="text-muted-foreground">→</span>
                               <span className="font-semibold text-foreground">{route.to}</span>
                             </div>
-                            <span className="font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm">
-                              {formatPrice(price)}
-                            </span>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground" />
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Price Dialog */}
+      <Dialog open={showPrice} onOpenChange={setShowPrice}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <div ref={priceDialogRef}>
+            <DialogHeader className="price-header">
+              <DialogTitle className="text-2xl font-display flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-white" />
+                </div>
+                Daftar Harga Tiket
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+              {routeCategories.map((category) => (
+                <div
+                  key={category.name}
+                  className="price-category rounded-xl border border-border overflow-hidden bg-card"
+                >
+                  <button
+                    onClick={() => setOpenPriceCategory(openPriceCategory === category.name ? null : category.name)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                        <Wallet className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-display font-semibold text-foreground">
+                          {category.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {category.routes.length} rute tersedia
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
+                        openPriceCategory === category.name ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {openPriceCategory === category.name && (
+                    <div className="border-t border-border">
+                      {category.routes.map((route, idx) => {
+                        const price = getRoutePrice(route.from, route.to);
+                        return (
+                          <div
+                            key={idx}
+                            className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors"
+                          >
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2 text-sm md:text-base">
+                                <span className="font-semibold text-foreground">{route.from}</span>
+                                {route.via && (
+                                  <>
+                                    <span className="text-muted-foreground">→</span>
+                                    <span className="text-muted-foreground">{route.via}</span>
+                                  </>
+                                )}
+                                <span className="text-muted-foreground">→</span>
+                                <span className="font-semibold text-foreground">{route.to}</span>
+                              </div>
+                              <span className="font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm">
+                                {formatPrice(price)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -390,63 +464,65 @@ const Services = () => {
       {/* Booking Guide Dialog */}
       <Dialog open={showBooking} onOpenChange={setShowBooking}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-display flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                <Smartphone className="w-5 h-5 text-white" />
-              </div>
-              Panduan Pemesanan Online
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto pr-2 mt-4">
-            <div className="space-y-4">
-              {bookingSteps.map((step, index) => (
-                <div
-                  key={index}
-                  className="flex gap-4 p-4 rounded-xl border border-border bg-card hover:bg-secondary/20 transition-colors"
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold relative">
-                      <step.icon className="w-6 h-6" />
-                      <span className="absolute -top-2 -right-2 w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center font-bold">
-                        {index + 1}
-                      </span>
+          <div ref={bookingDialogRef}>
+            <DialogHeader className="booking-header">
+              <DialogTitle className="text-2xl font-display flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-white" />
+                </div>
+                Panduan Pemesanan Online
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto pr-2 mt-4">
+              <div className="space-y-4">
+                {bookingSteps.map((step, index) => (
+                  <div
+                    key={index}
+                    className="booking-step flex gap-4 p-4 rounded-xl border border-border bg-card hover:bg-secondary/20 transition-colors"
+                  >
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold relative">
+                        <step.icon className="w-6 h-6" />
+                        <span className="absolute -top-2 -right-2 w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs flex items-center justify-center font-bold">
+                          {index + 1}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-display font-semibold text-foreground mb-1">
+                        {step.title}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {step.description}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-display font-semibold text-foreground mb-1">
-                      {step.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-              <p className="text-sm text-emerald-800 font-medium mb-2">
-                💡 Tips Pemesanan:
-              </p>
-              <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Pesan minimal H-1 sebelum keberangkatan</li>
-                <li>• Pastikan alamat penjemputan jelas dan mudah dijangkau</li>
-                <li>• Simpan nomor kontak admin untuk koordinasi</li>
-              </ul>
-            </div>
+              <div className="booking-tips mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800">
+                <p className="text-sm text-emerald-800 dark:text-emerald-300 font-medium mb-2">
+                  💡 Tips Pemesanan:
+                </p>
+                <ul className="text-sm text-emerald-700 dark:text-emerald-400 space-y-1">
+                  <li>• Pesan minimal H-1 sebelum keberangkatan</li>
+                  <li>• Pastikan alamat penjemputan jelas dan mudah dijangkau</li>
+                  <li>• Simpan nomor kontak admin untuk koordinasi</li>
+                </ul>
+              </div>
 
-            <button
-              onClick={() => {
-                setShowBooking(false);
-                navigate('/search');
-              }}
-              className="w-full mt-6 py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-            >
-              Mulai Pesan Sekarang
-              <ArrowRight className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => {
+                  setShowBooking(false);
+                  navigate('/search');
+                }}
+                className="booking-cta w-full mt-6 py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                Mulai Pesan Sekarang
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
