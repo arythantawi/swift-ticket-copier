@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface Banner {
   id: string;
@@ -49,6 +52,7 @@ const HeroBanner = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const slidesContainerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const imageRefs = useRef<(HTMLImageElement | HTMLDivElement | null)[]>([]);
   const textOverlayRef = useRef<HTMLDivElement>(null);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -218,6 +222,47 @@ const HeroBanner = () => {
     }
   }, [banners]);
 
+  // Parallax effect on scroll
+  useEffect(() => {
+    if (!sectionRef.current || banners.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      // Parallax effect for images
+      imageRefs.current.forEach((img) => {
+        if (img) {
+          gsap.to(img, {
+            yPercent: 20,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: 'top bottom',
+              end: 'bottom top',
+              scrub: 1.5,
+            }
+          });
+        }
+      });
+
+      // Subtle scale effect on the container
+      gsap.fromTo(slidesContainerRef.current,
+        { scale: 0.95, opacity: 0.8 },
+        {
+          scale: 1,
+          opacity: 1,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top 90%',
+            end: 'top 20%',
+            scrub: 1,
+          }
+        }
+      );
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [banners]);
+
   // Handle banner click to show text with GSAP animation
   const handleBannerClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -358,16 +403,21 @@ const HeroBanner = () => {
             className="relative w-full h-full cursor-pointer"
             onClick={isActive ? handleBannerClick : undefined}
           >
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 overflow-hidden">
               {hasImage ? (
                 <img 
+                  ref={(el) => imageRefs.current[index] = el}
                   src={convertGoogleDriveUrl(banner.image_url)!}
                   alt={banner.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-[120%] object-cover -mt-[10%]"
                   draggable={false}
+                  style={{ willChange: 'transform' }}
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary to-primary/80" />
+                <div 
+                  ref={(el) => imageRefs.current[index] = el}
+                  className="w-full h-[120%] -mt-[10%] bg-gradient-to-br from-primary to-primary/80" 
+                />
               )}
               {/* Gradient overlay for depth */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
@@ -411,11 +461,12 @@ const HeroBanner = () => {
             )}
           </div>
         ) : layoutType === 'image_overlay' ? (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full overflow-hidden">
             {hasImage && (
               <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${convertGoogleDriveUrl(banner.image_url)})` }}
+                ref={(el) => imageRefs.current[index] = el}
+                className="absolute inset-0 h-[120%] -mt-[10%] bg-cover bg-center"
+                style={{ backgroundImage: `url(${convertGoogleDriveUrl(banner.image_url)})`, willChange: 'transform' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
               </div>
@@ -449,9 +500,11 @@ const HeroBanner = () => {
               <>
                 <div className="flex-1 relative overflow-hidden">
                   <img 
+                    ref={(el) => imageRefs.current[index] = el}
                     src={convertGoogleDriveUrl(banner.image_url)!}
                     alt={banner.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-[120%] -mt-[10%] object-cover"
+                    style={{ willChange: 'transform' }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
