@@ -68,21 +68,21 @@ const services = [
     title: 'Berangkat Setiap Hari',
     description: 'Jadwal keberangkatan tersedia setiap hari',
     gradient: 'from-blue-500 to-cyan-500',
-    hasSchedule: true,
+    dialogType: 'schedule' as const,
   },
   {
     icon: Wallet,
     title: 'Harga Terjangkau',
     description: 'Tarif kompetitif untuk semua rute',
     gradient: 'from-amber-500 to-orange-500',
-    hasSchedule: false,
+    dialogType: 'price' as const,
   },
   {
     icon: Smartphone,
     title: 'Pesan Via Online',
     description: 'Proses booking cepat dan mudah',
     gradient: 'from-emerald-500 to-teal-500',
-    hasSchedule: false,
+    dialogType: 'booking' as const,
   },
 ];
 
@@ -90,7 +90,15 @@ const Services = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const navigate = useNavigate();
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showPrice, setShowPrice] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>('Jawa - Bali');
+  const [openPriceCategory, setOpenPriceCategory] = useState<string | null>('Jawa - Bali');
+
+  const handleServiceClick = (dialogType: string) => {
+    if (dialogType === 'schedule') setShowSchedule(true);
+    else if (dialogType === 'price') setShowPrice(true);
+    else if (dialogType === 'booking') navigate('/search');
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -169,7 +177,7 @@ const Services = () => {
               <div
                 key={index}
                 className="service-card group relative bg-card rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/20 overflow-hidden hover:-translate-y-2 cursor-pointer"
-                onClick={() => service.hasSchedule && setShowSchedule(true)}
+                onClick={() => handleServiceClick(service.dialogType)}
               >
                 {/* Gradient background on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
@@ -242,13 +250,86 @@ const Services = () => {
 
                 {openCategory === category.name && (
                   <div className="border-t border-border">
+                    {category.routes.map((route, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors cursor-pointer"
+                        onClick={() => handleSelectRoute(route)}
+                      >
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2 text-sm md:text-base">
+                            <span className="font-semibold text-foreground">{route.from}</span>
+                            {route.via && (
+                              <>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="text-muted-foreground">{route.via}</span>
+                              </>
+                            )}
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-semibold text-foreground">{route.to}</span>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Price Dialog */}
+      <Dialog open={showPrice} onOpenChange={setShowPrice}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-display flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+              Daftar Harga Tiket
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+            {routeCategories.map((category) => (
+              <div
+                key={category.name}
+                className="rounded-xl border border-border overflow-hidden bg-card"
+              >
+                <button
+                  onClick={() => setOpenPriceCategory(openPriceCategory === category.name ? null : category.name)}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                      <Wallet className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-semibold text-foreground">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {category.routes.length} rute tersedia
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${
+                      openPriceCategory === category.name ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {openPriceCategory === category.name && (
+                  <div className="border-t border-border">
                     {category.routes.map((route, idx) => {
                       const price = getRoutePrice(route.from, route.to);
                       return (
                         <div
                           key={idx}
-                          className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors cursor-pointer"
-                          onClick={() => handleSelectRoute(route)}
+                          className="p-4 border-b border-border/50 last:border-b-0 hover:bg-secondary/20 transition-colors"
                         >
                           <div className="flex items-center justify-between flex-wrap gap-2">
                             <div className="flex items-center gap-2 text-sm md:text-base">
@@ -262,10 +343,9 @@ const Services = () => {
                               <span className="text-muted-foreground">→</span>
                               <span className="font-semibold text-foreground">{route.to}</span>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-primary">{formatPrice(price)}</span>
-                              <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                            </div>
+                            <span className="font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm">
+                              {formatPrice(price)}
+                            </span>
                           </div>
                         </div>
                       );
