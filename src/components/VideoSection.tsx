@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Play, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface Video {
   id: string;
@@ -10,7 +11,17 @@ interface Video {
   youtube_url: string;
   thumbnail_url: string | null;
   is_featured: boolean;
+  category: string;
 }
+
+type VideoCategory = 'semua' | 'promosi' | 'tutorial' | 'testimoni';
+
+const categoryLabels: Record<VideoCategory, string> = {
+  semua: 'Semua',
+  promosi: 'Promosi',
+  tutorial: 'Tutorial',
+  testimoni: 'Testimoni',
+};
 
 // Extract YouTube video ID from various URL formats
 const getYouTubeId = (url: string): string | null => {
@@ -41,7 +52,8 @@ const VideoSection = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [isVisible, setIsVisible] = useState(true); // Default true to prevent blank
+  const [isVisible, setIsVisible] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<VideoCategory>('semua');
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -53,7 +65,7 @@ const VideoSection = () => {
         .order('display_order', { ascending: true });
 
       if (!error && data) {
-        setVideos(data);
+        setVideos(data as Video[]);
       }
       setLoading(false);
     };
@@ -78,6 +90,14 @@ const VideoSection = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Filter videos based on category
+  const filteredVideos = activeCategory === 'semua' 
+    ? videos 
+    : videos.filter(v => v.category === activeCategory);
+
+  // Get available categories that have videos
+  const availableCategories = ['semua', ...new Set(videos.map(v => v.category))] as VideoCategory[];
+
   if (loading) {
     return (
       <section className="py-16 bg-secondary/30">
@@ -94,15 +114,15 @@ const VideoSection = () => {
     return null;
   }
 
-  const featuredVideo = videos.find(v => v.is_featured) || videos[0];
-  const otherVideos = videos.filter(v => v.id !== featuredVideo.id);
+  const featuredVideo = filteredVideos.find(v => v.is_featured) || filteredVideos[0];
+  const otherVideos = featuredVideo ? filteredVideos.filter(v => v.id !== featuredVideo.id) : [];
 
   return (
     <section ref={sectionRef} className="py-16 bg-secondary/30">
       <div className="container">
         {/* Section Header */}
         <div 
-          className={`text-center mb-12 transition-all duration-700 ${
+          className={`text-center mb-8 transition-all duration-700 ${
             isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
@@ -117,51 +137,88 @@ const VideoSection = () => {
           </p>
         </div>
 
-        {/* Featured Video */}
-        <div 
-          className={`mb-8 transition-all duration-700 delay-200 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
+        {/* Category Filter */}
+        {availableCategories.length > 2 && (
           <div 
-            className="relative group cursor-pointer rounded-2xl overflow-hidden shadow-xl"
-            onClick={() => setSelectedVideo(featuredVideo)}
+            className={`flex flex-wrap justify-center gap-2 mb-8 transition-all duration-700 delay-100 ${
+              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
           >
-            <div className="aspect-video bg-muted">
-              <img
-                src={getYouTubeThumbnail(featuredVideo.youtube_url, featuredVideo.thumbnail_url)}
-                alt={featuredVideo.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  const videoId = getYouTubeId(featuredVideo.youtube_url);
-                  if (videoId && !target.src.includes('mqdefault')) {
-                    target.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-                  }
-                }}
-              />
-            </div>
-            
-            {/* Play Button Overlay */}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/50">
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center transform transition-transform group-hover:scale-110">
-                <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+            {availableCategories.map((category) => (
+              <Button
+                key={category}
+                variant={activeCategory === category ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveCategory(category)}
+                className="rounded-full"
+              >
+                {categoryLabels[category] || category}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {/* No videos for category */}
+        {filteredVideos.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Tidak ada video untuk kategori ini</p>
+          </div>
+        )}
+
+        {/* Featured Video */}
+        {featuredVideo && (
+          <div 
+            className={`mb-8 transition-all duration-700 delay-200 ${
+              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
+          >
+            <div 
+              className="relative group cursor-pointer rounded-2xl overflow-hidden shadow-xl"
+              onClick={() => setSelectedVideo(featuredVideo)}
+            >
+              <div className="aspect-video bg-muted">
+                <img
+                  src={getYouTubeThumbnail(featuredVideo.youtube_url, featuredVideo.thumbnail_url)}
+                  alt={featuredVideo.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    const videoId = getYouTubeId(featuredVideo.youtube_url);
+                    if (videoId && !target.src.includes('mqdefault')) {
+                      target.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                    }
+                  }}
+                />
+              </div>
+              
+              {/* Play Button Overlay */}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-colors group-hover:bg-black/50">
+                <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center transform transition-transform group-hover:scale-110">
+                  <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+                </div>
+              </div>
+
+              {/* Category Badge */}
+              <div className="absolute top-4 left-4">
+                <span className="px-3 py-1 bg-primary/90 text-primary-foreground text-sm font-medium rounded-full capitalize">
+                  {featuredVideo.category}
+                </span>
+              </div>
+
+              {/* Video Info */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                <h3 className="text-white text-xl md:text-2xl font-bold mb-2">
+                  {featuredVideo.title}
+                </h3>
+                {featuredVideo.description && (
+                  <p className="text-white/80 text-sm md:text-base line-clamp-2">
+                    {featuredVideo.description}
+                  </p>
+                )}
               </div>
             </div>
-
-            {/* Video Info */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-              <h3 className="text-white text-xl md:text-2xl font-bold mb-2">
-                {featuredVideo.title}
-              </h3>
-              {featuredVideo.description && (
-                <p className="text-white/80 text-sm md:text-base line-clamp-2">
-                  {featuredVideo.description}
-                </p>
-              )}
-            </div>
           </div>
-        </div>
+        )}
 
         {/* Other Videos Grid */}
         {otherVideos.length > 0 && (
@@ -189,6 +246,13 @@ const VideoSection = () => {
                         }
                       }}
                     />
+                  </div>
+                  
+                  {/* Category Badge */}
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 bg-primary/90 text-primary-foreground text-xs font-medium rounded-full capitalize">
+                      {video.category}
+                    </span>
                   </div>
                   
                   {/* Play Button Overlay */}

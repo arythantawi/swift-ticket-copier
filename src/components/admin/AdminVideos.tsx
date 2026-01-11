@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Play, GripVertical, Star } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Pencil, Trash2, Play, Star, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Video {
@@ -19,6 +20,7 @@ interface Video {
   display_order: number;
   is_active: boolean;
   is_featured: boolean;
+  category: string;
   created_at: string;
 }
 
@@ -29,7 +31,14 @@ interface VideoForm {
   thumbnail_url: string;
   is_active: boolean;
   is_featured: boolean;
+  category: string;
 }
+
+const VIDEO_CATEGORIES = [
+  { value: 'promosi', label: 'Promosi' },
+  { value: 'tutorial', label: 'Tutorial' },
+  { value: 'testimoni', label: 'Testimoni' },
+];
 
 const initialForm: VideoForm = {
   title: '',
@@ -38,6 +47,7 @@ const initialForm: VideoForm = {
   thumbnail_url: '',
   is_active: true,
   is_featured: false,
+  category: 'promosi',
 };
 
 // Extract YouTube video ID from various URL formats
@@ -61,6 +71,7 @@ const AdminVideos = () => {
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [form, setForm] = useState<VideoForm>(initialForm);
   const [saving, setSaving] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const fetchVideos = async () => {
     const { data, error } = await supabase
@@ -69,7 +80,7 @@ const AdminVideos = () => {
       .order('display_order', { ascending: true });
 
     if (!error && data) {
-      setVideos(data);
+      setVideos(data as Video[]);
     }
     setLoading(false);
   };
@@ -110,6 +121,7 @@ const AdminVideos = () => {
         thumbnail_url: form.thumbnail_url.trim() || null,
         is_active: form.is_active,
         is_featured: form.is_featured,
+        category: form.category,
       };
 
       if (editingVideo) {
@@ -151,6 +163,7 @@ const AdminVideos = () => {
       thumbnail_url: video.thumbnail_url || '',
       is_active: video.is_active,
       is_featured: video.is_featured,
+      category: video.category,
     });
     setIsDialogOpen(true);
   };
@@ -218,6 +231,11 @@ const AdminVideos = () => {
     setForm(initialForm);
   };
 
+  // Filter videos
+  const filteredVideos = filterCategory === 'all' 
+    ? videos 
+    : videos.filter(v => v.category === filterCategory);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -228,7 +246,7 @@ const AdminVideos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Video Promosi</h2>
           <p className="text-muted-foreground">Kelola video YouTube untuk ditampilkan di homepage</p>
@@ -255,6 +273,25 @@ const AdminVideos = () => {
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="Perjalanan Seru ke Bali"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Kategori *</Label>
+                <Select 
+                  value={form.category} 
+                  onValueChange={(value) => setForm({ ...form, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VIDEO_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -335,6 +372,34 @@ const AdminVideos = () => {
         </Dialog>
       </div>
 
+      {/* Filter by Category */}
+      <div className="flex items-center gap-2">
+        <Tag className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">Filter:</span>
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant={filterCategory === 'all' ? 'default' : 'outline'}
+            onClick={() => setFilterCategory('all')}
+          >
+            Semua ({videos.length})
+          </Button>
+          {VIDEO_CATEGORIES.map((cat) => {
+            const count = videos.filter(v => v.category === cat.value).length;
+            return (
+              <Button 
+                key={cat.value}
+                size="sm" 
+                variant={filterCategory === cat.value ? 'default' : 'outline'}
+                onClick={() => setFilterCategory(cat.value)}
+              >
+                {cat.label} ({count})
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
       {videos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -347,10 +412,19 @@ const AdminVideos = () => {
             </Button>
           </CardContent>
         </Card>
+      ) : filteredVideos.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Tag className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-lg mb-2">Tidak ada video</h3>
+            <p className="text-muted-foreground">Tidak ada video untuk kategori ini</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4">
-          {videos.map((video) => {
+          {filteredVideos.map((video) => {
             const youtubeId = getYouTubeId(video.youtube_url);
+            const categoryLabel = VIDEO_CATEGORIES.find(c => c.value === video.category)?.label || video.category;
             return (
               <Card key={video.id} className={!video.is_active ? 'opacity-60' : ''}>
                 <CardContent className="p-4">
@@ -374,7 +448,12 @@ const AdminVideos = () => {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg mb-1 truncate">{video.title}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg truncate">{video.title}</h3>
+                        <span className="px-2 py-0.5 bg-secondary text-secondary-foreground text-xs rounded-full capitalize flex-shrink-0">
+                          {categoryLabel}
+                        </span>
+                      </div>
                       {video.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                           {video.description}
