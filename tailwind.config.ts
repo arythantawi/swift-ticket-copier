@@ -101,7 +101,12 @@ export default {
           "50%": { boxShadow: "0 0 40px hsl(38 92% 50% / 0.6)" },
         },
         "shimmer": {
-          "100%": { transform: "translateX(100%)" },
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "shimmer-text": {
+          "0%": { backgroundPosition: "200% center" },
+          "100%": { backgroundPosition: "-200% center" },
         },
       },
       animation: {
@@ -112,6 +117,7 @@ export default {
         "slide-in-right": "slide-in-right 0.5s ease-out forwards",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "shimmer": "shimmer 2s infinite",
+        "shimmer-text": "shimmer-text 3s ease-in-out infinite",
       },
     },
   },
