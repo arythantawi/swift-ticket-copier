@@ -47,6 +47,23 @@ const Facilities = () => {
   const [showDescription, setShowDescription] = useState(false);
 
   useEffect(() => {
+    // Ensure visibility even if animations fail
+    const ensureVisible = () => {
+      setShowDescription(true);
+      const cards = document.querySelectorAll('.facility-card');
+      const icons = document.querySelectorAll('.facility-icon');
+      const title = document.querySelector('.facilities-title');
+      
+      gsap.set([title, cards, icons], { opacity: 1, y: 0, scale: 1, rotation: 0, clearProps: 'all' });
+    };
+
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    
+    if (prefersReducedMotion) {
+      ensureVisible();
+      return;
+    }
+
     const ctx = gsap.context(() => {
       // Animate title
       gsap.from('.facilities-title', {
@@ -58,6 +75,7 @@ const Facilities = () => {
         opacity: 0,
         duration: 0.8,
         ease: 'power3.out',
+        clearProps: 'all',
         onComplete: () => setShowDescription(true),
       });
 
@@ -78,18 +96,19 @@ const Facilities = () => {
         clearProps: 'all',
       });
 
-      // Animate icons with rotation
+      // Animate icons
       gsap.from('.facility-icon', {
         scrollTrigger: {
           trigger: '.facilities-grid',
           start: 'top 85%',
         },
-        scale: 0,
-        rotation: -180,
-        duration: 0.8,
+        scale: 0.5,
+        opacity: 0,
+        duration: 0.6,
         stagger: 0.1,
-        ease: 'back.out(1.7)',
-        delay: 0.3,
+        ease: 'power2.out',
+        delay: 0.2,
+        clearProps: 'all',
       });
 
       // Parallax for decorative blobs
@@ -134,7 +153,10 @@ const Facilities = () => {
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      ensureVisible();
+    };
   }, []);
 
   return (
