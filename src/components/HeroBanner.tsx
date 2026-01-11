@@ -229,13 +229,17 @@ const HeroBanner = () => {
       case 'image_full':
         // Full image only - click to reveal text
         return (
-          <div className="relative cursor-pointer" onClick={handleBannerClick}>
-            <div className="relative w-full aspect-[16/9] md:aspect-[21/9]">
+          <div 
+            className="relative cursor-pointer select-none" 
+            onClick={handleBannerClick}
+          >
+            <div className="relative w-full aspect-[16/9] md:aspect-[21/9] pointer-events-none">
               {hasImage ? (
                 <img 
                   src={convertGoogleDriveUrl(currentBanner.image_url)!}
                   alt={currentBanner.title}
                   className="w-full h-full object-cover transition-all duration-700"
+                  draggable={false}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary to-primary/80" />
@@ -243,41 +247,40 @@ const HeroBanner = () => {
             </div>
             
             {/* Click-to-reveal text overlay */}
-            {isTextVisible && (
-              <div 
-                ref={textOverlayRef}
-                className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center justify-end pb-12 md:pb-16 px-4"
-              >
-                <h2 className="banner-title text-2xl md:text-5xl font-bold text-white mb-3 max-w-3xl leading-tight drop-shadow-lg text-center">
-                  {currentBanner.title}
-                </h2>
-                {currentBanner.subtitle && (
-                  <p className="banner-subtitle text-base md:text-xl text-white/90 mb-6 max-w-2xl leading-relaxed drop-shadow text-center">
-                    {currentBanner.subtitle}
-                  </p>
-                )}
-                {currentBanner.link_url && currentBanner.button_text && (
-                  <Button
-                    asChild
-                    size="lg"
-                    className="banner-button bg-white text-primary hover:bg-white/90 px-8 py-5 text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <a href={currentBanner.link_url}>{currentBanner.button_text}</a>
-                  </Button>
-                )}
-              </div>
-            )}
+            <div 
+              ref={textOverlayRef}
+              className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center justify-end pb-12 md:pb-16 px-4 pointer-events-none ${
+                isTextVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{ visibility: isTextVisible ? 'visible' : 'hidden' }}
+            >
+              <h2 className="banner-title text-2xl md:text-5xl font-bold text-white mb-3 max-w-3xl leading-tight drop-shadow-lg text-center">
+                {currentBanner.title}
+              </h2>
+              {currentBanner.subtitle && (
+                <p className="banner-subtitle text-base md:text-xl text-white/90 mb-6 max-w-2xl leading-relaxed drop-shadow text-center">
+                  {currentBanner.subtitle}
+                </p>
+              )}
+              {currentBanner.link_url && currentBanner.button_text && (
+                <Button
+                  asChild
+                  size="lg"
+                  className="banner-button bg-white text-primary hover:bg-white/90 px-8 py-5 text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <a href={currentBanner.link_url}>{currentBanner.button_text}</a>
+                </Button>
+              )}
+            </div>
             
             {/* Hint to click */}
             {!isTextVisible && (currentBanner.title || currentBanner.subtitle) && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white text-xs md:text-sm px-4 py-2 rounded-full animate-pulse">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white text-xs md:text-sm px-4 py-2 rounded-full animate-pulse pointer-events-none">
                 Klik untuk lihat detail
               </div>
             )}
             
-            {currentBanner.link_url && !isTextVisible && (
-              <a href={currentBanner.link_url} className="absolute inset-0 z-5" aria-label={currentBanner.title} />
-            )}
             <NavigationArrows isDark={true} />
             <DotsIndicator position="bottom-4" />
           </div>
