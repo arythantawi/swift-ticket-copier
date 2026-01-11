@@ -801,7 +801,34 @@ const AdminContent = () => {
             </div>
             <div className="space-y-2">
               <Label>URL Gambar</Label>
-              <Input value={bannerForm.image_url} onChange={(e) => setBannerForm({...bannerForm, image_url: e.target.value})} placeholder="https://..." />
+              <Input 
+                value={bannerForm.image_url} 
+                onChange={(e) => setBannerForm({...bannerForm, image_url: e.target.value})} 
+                placeholder="https://example.com/image.jpg" 
+              />
+              <p className="text-xs text-muted-foreground">
+                Gunakan link langsung ke gambar (berakhiran .jpg, .png, .webp). Bukan link halaman website.
+              </p>
+              {bannerForm.image_url && (
+                <div className="mt-2 rounded-lg overflow-hidden border border-border bg-muted/50">
+                  <img 
+                    src={bannerForm.image_url} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    }}
+                    onLoad={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'block';
+                      (e.target as HTMLImageElement).nextElementSibling?.classList.add('hidden');
+                    }}
+                  />
+                  <div className="hidden p-4 text-center text-sm text-destructive">
+                    ⚠️ Gambar tidak dapat dimuat. Pastikan URL adalah link langsung ke file gambar.
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
