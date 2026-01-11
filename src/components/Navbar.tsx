@@ -61,15 +61,6 @@ const Navbar = () => {
 
           {/* CTA Button */}
           <div className="hidden md:flex items-center gap-4">
-            <a
-              href="tel:+6281234567890"
-              className={`flex items-center gap-2 text-sm font-medium ${
-                isScrolled ? 'text-muted-foreground' : 'text-white/80'
-              }`}
-            >
-              <Phone className="w-4 h-4" />
-              <span>0812-3456-7890</span>
-            </a>
             <Button className="btn-gold px-5 py-2">
               Pesan Sekarang
             </Button>
