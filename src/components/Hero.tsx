@@ -76,176 +76,226 @@ const Hero = () => {
   const [showBadge, setShowBadge] = useState(false);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        defaults: {
-          ease: 'power4.out'
+    // Prevent "blank hero" on devices/browsers that block/interrupt animations.
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    const ensureVisible = () => {
+      setShowSubtitle(true);
+      setShowBadge(true);
+
+      try {
+        const line1Chars = titleLine1Ref.current?.querySelectorAll('.hero-char') || [];
+        const line2Chars = titleLine2Ref.current?.querySelectorAll('.hero-char') || [];
+        gsap.set([line1Chars, line2Chars], { opacity: 1, y: 0, clearProps: 'transform' });
+      } catch {
+        // noop
+      }
+    };
+
+    if (prefersReducedMotion) {
+      ensureVisible();
+      return;
+    }
+
+    let ctx: gsap.Context | undefined;
+
+    try {
+      ctx = gsap.context(() => {
+        const tl = gsap.timeline({
+          defaults: {
+            ease: 'power4.out',
+          },
+        });
+
+        // Get all characters for animation
+        const line1Chars = titleLine1Ref.current?.querySelectorAll('.hero-char') || [];
+        const line2Chars = titleLine2Ref.current?.querySelectorAll('.hero-char') || [];
+
+        // If chars missing (or animation interrupted), force content visible
+        if (line1Chars.length === 0 && line2Chars.length === 0) {
+          ensureVisible();
+          return;
         }
-      });
 
-      // Get all characters for animation
-      const line1Chars = titleLine1Ref.current?.querySelectorAll('.hero-char') || [];
-      const line2Chars = titleLine2Ref.current?.querySelectorAll('.hero-char') || [];
-
-      // Show subtitle and badge immediately if no chars found
-      if (line1Chars.length === 0 && line2Chars.length === 0) {
-        setShowSubtitle(true);
-        setShowBadge(true);
-        return;
-      }
-
-      // Badge animation
-      tl.from(badgeRef.current, {
-        y: -20,
-        opacity: 0,
-        duration: 0.6,
-        ease: 'back.out(1.7)',
-        onComplete: () => setShowBadge(true)
-      })
-      // Line 1 character animation
-      .from(line1Chars, {
-        opacity: 0,
-        y: 30,
-        duration: 0.5,
-        stagger: 0.02,
-        ease: 'power3.out'
-      }, '-=0.2')
-      // Line 2 character animation
-      .from(line2Chars, {
-        opacity: 0,
-        y: 30,
-        duration: 0.5,
-        stagger: 0.02,
-        ease: 'power3.out',
-        onComplete: () => setShowSubtitle(true)
-      }, '-=0.3')
-      // Stats animation
-      .from(statsRef.current?.children || [], {
-        y: 30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.1,
-      }, '-=0.2')
-      // Search card animation
-      .from(searchRef.current, {
-        y: 40,
-        opacity: 0,
-        scale: 0.98,
-        duration: 0.8,
-        ease: 'power3.out'
-      }, '-=0.4');
-
-      // Subtle floating animation for background elements
-      gsap.to('.hero-blob-1', {
-        y: -20,
-        x: 10,
-        duration: 4,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1
-      });
-
-      gsap.to('.hero-blob-2', {
-        y: 15,
-        x: -15,
-        duration: 5,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1
-      });
-
-      // Parallax effects on scroll
-      if (bgGradientRef.current) {
-        gsap.to(bgGradientRef.current, {
-          yPercent: 30,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1.5,
-          }
-        });
-      }
-
-      // Parallax for blobs - slower movement
-      if (blob1Ref.current) {
-        gsap.to(blob1Ref.current, {
-          yPercent: 50,
-          xPercent: -10,
-          scale: 1.2,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 2,
-          }
-        });
-      }
-
-      if (blob2Ref.current) {
-        gsap.to(blob2Ref.current, {
-          yPercent: 40,
-          xPercent: 15,
-          scale: 0.8,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 2.5,
-          }
-        });
-      }
-
-      // Grid pattern parallax - subtle
-      if (gridPatternRef.current) {
-        gsap.to(gridPatternRef.current, {
-          yPercent: 15,
+        // Badge animation
+        tl.from(badgeRef.current, {
+          y: -20,
           opacity: 0,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1,
-          }
+          duration: 0.6,
+          ease: 'back.out(1.7)',
+          onComplete: () => setShowBadge(true),
+        })
+          // Line 1 character animation
+          .from(
+            line1Chars,
+            {
+              opacity: 0,
+              y: 30,
+              duration: 0.5,
+              stagger: 0.02,
+              ease: 'power3.out',
+            },
+            '-=0.2'
+          )
+          // Line 2 character animation
+          .from(
+            line2Chars,
+            {
+              opacity: 0,
+              y: 30,
+              duration: 0.5,
+              stagger: 0.02,
+              ease: 'power3.out',
+              onComplete: () => setShowSubtitle(true),
+            },
+            '-=0.3'
+          )
+          // Stats animation
+          .from(
+            statsRef.current?.children || [],
+            {
+              y: 30,
+              opacity: 0,
+              duration: 0.6,
+              stagger: 0.1,
+            },
+            '-=0.2'
+          )
+          // Search card animation
+          .from(
+            searchRef.current,
+            {
+              y: 40,
+              opacity: 0,
+              scale: 0.98,
+              duration: 0.8,
+              ease: 'power3.out',
+            },
+            '-=0.4'
+          );
+
+        // Subtle floating animation for background elements
+        gsap.to('.hero-blob-1', {
+          y: -20,
+          x: 10,
+          duration: 4,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
         });
-      }
 
-      // Content parallax - moves slower than scroll for depth effect
-      if (contentRef.current) {
-        gsap.to(contentRef.current, {
-          yPercent: -8,
-          opacity: 0.3,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'center top',
-            scrub: 1,
-          }
+        gsap.to('.hero-blob-2', {
+          y: 15,
+          x: -15,
+          duration: 5,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
         });
+
+        // Parallax effects on scroll
+        if (bgGradientRef.current) {
+          gsap.to(bgGradientRef.current, {
+            yPercent: 30,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 1.5,
+            },
+          });
+        }
+
+        // Parallax for blobs - slower movement
+        if (blob1Ref.current) {
+          gsap.to(blob1Ref.current, {
+            yPercent: 50,
+            xPercent: -10,
+            scale: 1.2,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 2,
+            },
+          });
+        }
+
+        if (blob2Ref.current) {
+          gsap.to(blob2Ref.current, {
+            yPercent: 40,
+            xPercent: 15,
+            scale: 0.8,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 2.5,
+            },
+          });
+        }
+
+        // Grid pattern parallax - subtle
+        if (gridPatternRef.current) {
+          gsap.to(gridPatternRef.current, {
+            yPercent: 15,
+            opacity: 0,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 1,
+            },
+          });
+        }
+
+        // Content parallax - moves slower than scroll for depth effect
+        if (contentRef.current) {
+          gsap.to(contentRef.current, {
+            yPercent: -8,
+            opacity: 0.3,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'center top',
+              scrub: 1,
+            },
+          });
+        }
+
+        // Search card parallax - stays visible longer
+        if (searchRef.current) {
+          gsap.to(searchRef.current, {
+            yPercent: -15,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: heroRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 0.8,
+            },
+          });
+        }
+      }, heroRef);
+    } catch {
+      ensureVisible();
+    }
+
+    return () => {
+      try {
+        ctx?.revert();
+      } finally {
+        // Ensure we never leave the hero hidden after unmount/remount.
+        ensureVisible();
       }
-
-      // Search card parallax - stays visible longer
-      if (searchRef.current) {
-        gsap.to(searchRef.current, {
-          yPercent: -15,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 0.8,
-          }
-        });
-      }
-
-    }, heroRef);
-
-    return () => ctx.revert();
+    };
   }, []);
 
   return (
