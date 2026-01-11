@@ -64,6 +64,7 @@ interface Banner {
   button_text: string | null;
   display_order: number;
   is_active: boolean;
+  layout_type: string;
 }
 
 interface Promo {
@@ -135,7 +136,7 @@ const AdminContent = () => {
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [bannerForm, setBannerForm] = useState({
-    title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true
+    title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption'
   });
 
   // Promos state
@@ -227,10 +228,11 @@ const AdminContent = () => {
         button_text: banner.button_text || '',
         display_order: banner.display_order,
         is_active: banner.is_active,
+        layout_type: banner.layout_type || 'image_caption',
       });
     } else {
       setEditingBanner(null);
-      setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true });
+      setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption' });
     }
     setBannerDialogOpen(true);
   };
@@ -250,6 +252,7 @@ const AdminContent = () => {
         button_text: bannerForm.button_text || null,
         display_order: bannerForm.display_order,
         is_active: bannerForm.is_active,
+        layout_type: bannerForm.layout_type,
       };
       if (editingBanner) {
         const { error } = await supabase.from('banners').update(data).eq('id', editingBanner.id);
@@ -839,6 +842,26 @@ const AdminContent = () => {
             <DialogDescription>Kelola banner untuk tampilan website</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Tipe Layout *</Label>
+              <Select 
+                value={bannerForm.layout_type} 
+                onValueChange={(value) => setBannerForm({...bannerForm, layout_type: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih tipe layout" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image_full">🖼️ Gambar Penuh (tanpa teks)</SelectItem>
+                  <SelectItem value="image_overlay">🎨 Gambar + Overlay Teks</SelectItem>
+                  <SelectItem value="image_caption">📝 Gambar + Caption Bawah</SelectItem>
+                  <SelectItem value="text_only">✏️ Teks Saja (tanpa gambar)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Pilih bagaimana banner akan ditampilkan di website
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Judul *</Label>
               <Input value={bannerForm.title} onChange={(e) => setBannerForm({...bannerForm, title: e.target.value})} />
