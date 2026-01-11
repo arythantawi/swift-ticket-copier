@@ -1,14 +1,66 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Bus, MapPin, Calendar, ArrowRight, Shield, Star } from 'lucide-react';
+import { MapPin, Calendar, Star } from 'lucide-react';
 import RouteSearch from './RouteSearch';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Split text into characters for animation
+const SplitText = ({ 
+  children, 
+  className = '',
+  charClassName = ''
+}: { 
+  children: string; 
+  className?: string;
+  charClassName?: string;
+}) => {
+  return (
+    <span className={className}>
+      {children.split('').map((char, index) => (
+        <span 
+          key={index} 
+          className={`hero-char inline-block ${charClassName}`}
+          style={{ 
+            display: char === ' ' ? 'inline' : 'inline-block',
+          }}
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </span>
+      ))}
+    </span>
+  );
+};
+
+// Split text into words for animation
+const SplitWords = ({ 
+  children, 
+  className = '',
+  wordClassName = ''
+}: { 
+  children: string; 
+  className?: string;
+  wordClassName?: string;
+}) => {
+  return (
+    <span className={className}>
+      {children.split(' ').map((word, index) => (
+        <span 
+          key={index} 
+          className={`hero-word inline-block mr-[0.25em] ${wordClassName}`}
+        >
+          {word}
+        </span>
+      ))}
+    </span>
+  );
+};
+
 const Hero = () => {
   const heroRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const titleLine1Ref = useRef<HTMLDivElement>(null);
+  const titleLine2Ref = useRef<HTMLDivElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -27,30 +79,63 @@ const Hero = () => {
         }
       });
 
-      // Staggered entrance animations
+      // Get all characters and words for animation
+      const line1Chars = titleLine1Ref.current?.querySelectorAll('.hero-char') || [];
+      const line2Chars = titleLine2Ref.current?.querySelectorAll('.hero-char') || [];
+
+      // Set initial state for characters
+      gsap.set([line1Chars, line2Chars], {
+        opacity: 0,
+        y: 80,
+        rotateX: -90,
+        transformOrigin: 'top center',
+      });
+
+      // Badge animation
       tl.from(badgeRef.current, {
         y: -30,
         opacity: 0,
         duration: 0.8,
         ease: 'back.out(1.7)'
       })
-      .from(titleRef.current, {
-        y: 80,
-        opacity: 0,
-        duration: 1.2,
+      // Line 1 character animation - wave effect
+      .to(line1Chars, {
+        opacity: 1,
+        y: 0,
+        rotateX: 0,
+        duration: 0.8,
+        stagger: {
+          each: 0.03,
+          ease: 'power2.out'
+        },
         ease: 'power4.out'
-      }, '-=0.4')
+      }, '-=0.3')
+      // Line 2 character animation - wave effect with gradient text
+      .to(line2Chars, {
+        opacity: 1,
+        y: 0,
+        rotateX: 0,
+        duration: 0.8,
+        stagger: {
+          each: 0.025,
+          ease: 'power2.out'
+        },
+        ease: 'back.out(1.2)'
+      }, '-=0.5')
+      // Subtitle animation
       .from(subtitleRef.current, {
         y: 50,
         opacity: 0,
         duration: 1,
-      }, '-=0.7')
+      }, '-=0.4')
+      // Stats animation
       .from(statsRef.current?.children || [], {
         y: 40,
         opacity: 0,
         duration: 0.8,
         stagger: 0.15,
       }, '-=0.6')
+      // Search card animation
       .from(searchRef.current, {
         y: 60,
         opacity: 0,
@@ -58,6 +143,29 @@ const Hero = () => {
         duration: 1,
         ease: 'power3.out'
       }, '-=0.5');
+
+      // Subtle hover effect on characters
+      line2Chars.forEach((char) => {
+        const element = char as HTMLElement;
+        element.addEventListener('mouseenter', () => {
+          gsap.to(element, {
+            y: -8,
+            scale: 1.2,
+            color: '#fbbf24',
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+        element.addEventListener('mouseleave', () => {
+          gsap.to(element, {
+            y: 0,
+            scale: 1,
+            color: '',
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+      });
 
       // Subtle floating animation for background elements
       gsap.to('.hero-blob-1', {
@@ -212,12 +320,20 @@ const Hero = () => {
               <span className="text-sm font-medium tracking-wide">Travel Minibus Terpercaya</span>
             </div>
 
-            {/* Title */}
-            <h1 ref={titleRef} className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] mb-8">
-              Perjalanan Nyaman ke
-              <span className="block mt-2 bg-gradient-to-r from-accent via-yellow-300 to-accent bg-clip-text text-transparent">
-                Seluruh Jawa & Bali
-              </span>
+            {/* Title with split text animation */}
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] mb-8">
+              <div ref={titleLine1Ref} className="overflow-hidden pb-2">
+                <SplitText charClassName="text-white">
+                  Perjalanan Nyaman ke
+                </SplitText>
+              </div>
+              <div ref={titleLine2Ref} className="overflow-hidden mt-2">
+                <span className="bg-gradient-to-r from-accent via-yellow-300 to-accent bg-clip-text text-transparent">
+                  <SplitText charClassName="cursor-pointer transition-colors">
+                    Seluruh Jawa & Bali
+                  </SplitText>
+                </span>
+              </div>
             </h1>
 
             {/* Subtitle */}
@@ -259,7 +375,7 @@ const Hero = () => {
           </div>
 
           {/* Search Card */}
-          <div ref={searchRef} className="lg:pl-8">
+          <div ref={searchRef} className="lg:pl-8" style={{ willChange: 'transform' }}>
             <RouteSearch />
           </div>
         </div>
