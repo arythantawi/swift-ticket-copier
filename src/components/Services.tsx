@@ -311,9 +311,9 @@ const Services = () => {
 
       {/* Schedule Dialog */}
       <Dialog open={showSchedule} onOpenChange={setShowSchedule}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <div ref={scheduleDialogRef}>
-            <DialogHeader className="schedule-header">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <div ref={scheduleDialogRef} className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="schedule-header flex-shrink-0">
               <DialogTitle className="text-2xl font-display flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                   <CalendarClock className="w-5 h-5 text-white" />
@@ -322,7 +322,7 @@ const Services = () => {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4 min-h-0">
               {routeCategories.map((category) => (
                 <div
                   key={category.name}
@@ -387,9 +387,9 @@ const Services = () => {
 
       {/* Price Dialog */}
       <Dialog open={showPrice} onOpenChange={setShowPrice}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <div ref={priceDialogRef}>
-            <DialogHeader className="price-header">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <div ref={priceDialogRef} className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="price-header flex-shrink-0">
               <DialogTitle className="text-2xl font-display flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                   <Wallet className="w-5 h-5 text-white" />
@@ -398,7 +398,7 @@ const Services = () => {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4 min-h-0">
               {routeCategories.map((category) => (
                 <div
                   key={category.name}
@@ -467,9 +467,9 @@ const Services = () => {
 
       {/* Booking Guide Dialog */}
       <Dialog open={showBooking} onOpenChange={setShowBooking}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-          <div ref={bookingDialogRef}>
-            <DialogHeader className="booking-header">
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <div ref={bookingDialogRef} className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="booking-header flex-shrink-0">
               <DialogTitle className="text-2xl font-display flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
                   <Smartphone className="w-5 h-5 text-white" />
@@ -478,7 +478,7 @@ const Services = () => {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto pr-2 mt-4">
+            <div className="flex-1 overflow-y-auto pr-2 mt-4 min-h-0">
               <div className="space-y-4">
                 {bookingSteps.map((step, index) => (
                   <div
