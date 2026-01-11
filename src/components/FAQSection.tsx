@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,6 +24,7 @@ interface FAQ {
 const FAQSection = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDescription, setShowDescription] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -54,7 +56,8 @@ const FAQSection = () => {
         y: 40,
         opacity: 0,
         duration: 0.8,
-        ease: 'power3.out'
+        ease: 'power3.out',
+        onComplete: () => setShowDescription(true),
       });
 
       gsap.from('.faq-content', {
@@ -77,6 +80,30 @@ const FAQSection = () => {
         opacity: 0,
         duration: 0.6,
         ease: 'power2.out'
+      });
+
+      // Parallax for FAQ content
+      gsap.to('.faq-content', {
+        yPercent: -6,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.faq-content',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        }
+      });
+
+      // Parallax for CTA
+      gsap.to('.faq-cta', {
+        yPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.faq-cta',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1,
+        }
       });
     }, sectionRef);
 
@@ -106,8 +133,14 @@ const FAQSection = () => {
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
             Pertanyaan yang Sering Diajukan
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Temukan jawaban untuk pertanyaan umum tentang layanan travel kami
+          <p className="text-muted-foreground max-w-2xl mx-auto min-h-[2rem]">
+            {showDescription && (
+              <Typewriter
+                text="Temukan jawaban untuk pertanyaan umum tentang layanan travel kami"
+                speed={25}
+                showCursor={false}
+              />
+            )}
           </p>
         </div>
 

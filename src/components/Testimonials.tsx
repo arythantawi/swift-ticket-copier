@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Star, Quote, MapPin, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,6 +21,7 @@ const Testimonials = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showDescription, setShowDescription] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +54,8 @@ const Testimonials = () => {
         y: 40,
         opacity: 0,
         duration: 0.8,
-        ease: 'power3.out'
+        ease: 'power3.out',
+        onComplete: () => setShowDescription(true),
       });
 
       gsap.from('.testimonial-stats', {
@@ -87,6 +90,30 @@ const Testimonials = () => {
         opacity: 0,
         duration: 0.6,
         ease: 'power2.out'
+      });
+
+      // Parallax for testimonial card
+      gsap.to('.testimonial-card', {
+        yPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.testimonial-card',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        }
+      });
+
+      // Parallax for stats
+      gsap.to('.testimonial-stats', {
+        yPercent: -5,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.testimonial-stats',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1,
+        }
       });
     }, sectionRef);
 
@@ -142,8 +169,14 @@ const Testimonials = () => {
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
             Apa Kata Mereka?
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Kepuasan pelanggan adalah prioritas utama kami
+          <p className="text-muted-foreground max-w-2xl mx-auto min-h-[2rem]">
+            {showDescription && (
+              <Typewriter
+                text="Kepuasan pelanggan adalah prioritas utama kami"
+                speed={30}
+                showCursor={false}
+              />
+            )}
           </p>
         </div>
 

@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, MapPin, Sparkles } from 'lucide-react';
 import { getRoutePrice } from '@/lib/scheduleData';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,6 +21,7 @@ const PopularRoutes = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [showDescription, setShowDescription] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -44,7 +46,8 @@ const PopularRoutes = () => {
         y: 40,
         opacity: 0,
         duration: 0.8,
-        ease: 'power3.out'
+        ease: 'power3.out',
+        onComplete: () => setShowDescription(true),
       });
 
       gsap.from('.route-card', {
@@ -57,6 +60,18 @@ const PopularRoutes = () => {
         duration: 0.6,
         stagger: 0.1,
         ease: 'power2.out'
+      });
+
+      // Parallax for route cards
+      gsap.to('.route-card', {
+        yPercent: -12,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: cardsRef.current,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        }
       });
     }, sectionRef);
 
@@ -73,8 +88,14 @@ const PopularRoutes = () => {
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
             Destinasi Favorit Pelanggan
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Pilih rute perjalanan Anda dari berbagai destinasi populer di Jawa dan Bali
+          <p className="text-muted-foreground max-w-2xl mx-auto min-h-[2rem]">
+            {showDescription && (
+              <Typewriter
+                text="Pilih rute perjalanan Anda dari berbagai destinasi populer di Jawa dan Bali"
+                speed={25}
+                showCursor={false}
+              />
+            )}
           </p>
         </div>
 

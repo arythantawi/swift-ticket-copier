@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MapPin, Calendar, Star } from 'lucide-react';
 import RouteSearch from './RouteSearch';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -70,6 +71,9 @@ const Hero = () => {
   const blob2Ref = useRef<HTMLDivElement>(null);
   const gridPatternRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const [showSubtitle, setShowSubtitle] = useState(false);
+  const [showBadge, setShowBadge] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -96,7 +100,8 @@ const Hero = () => {
         y: -30,
         opacity: 0,
         duration: 0.8,
-        ease: 'back.out(1.7)'
+        ease: 'back.out(1.7)',
+        onComplete: () => setShowBadge(true)
       })
       // Line 1 character animation - wave effect
       .to(line1Chars, {
@@ -120,21 +125,16 @@ const Hero = () => {
           each: 0.025,
           ease: 'power2.out'
         },
-        ease: 'back.out(1.2)'
+        ease: 'back.out(1.2)',
+        onComplete: () => setShowSubtitle(true)
       }, '-=0.5')
-      // Subtitle animation
-      .from(subtitleRef.current, {
-        y: 50,
-        opacity: 0,
-        duration: 1,
-      }, '-=0.4')
       // Stats animation
       .from(statsRef.current?.children || [], {
         y: 40,
         opacity: 0,
         duration: 0.8,
         stagger: 0.15,
-      }, '-=0.6')
+      }, '+=0.8')
       // Search card animation
       .from(searchRef.current, {
         y: 60,
@@ -336,10 +336,16 @@ const Hero = () => {
               </div>
             </h1>
 
-            {/* Subtitle */}
-            <p ref={subtitleRef} className="text-lg md:text-xl text-white/70 mb-10 max-w-lg leading-relaxed">
-              Layanan travel minibus door-to-door dengan armada modern, 
-              jadwal fleksibel, dan harga terjangkau untuk perjalanan Anda.
+            {/* Subtitle with typewriter effect */}
+            <p ref={subtitleRef} className="text-lg md:text-xl text-white/70 mb-10 max-w-lg leading-relaxed min-h-[4rem]">
+              {showSubtitle && (
+                <Typewriter
+                  text="Layanan travel minibus door-to-door dengan armada modern, jadwal fleksibel, dan harga terjangkau untuk perjalanan Anda."
+                  speed={25}
+                  showCursor={true}
+                  cursorClassName="bg-accent"
+                />
+              )}
             </p>
 
             {/* Stats */}

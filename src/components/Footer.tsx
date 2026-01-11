@@ -1,6 +1,12 @@
+import { useEffect, useRef } from 'react';
 import { Bus, MapPin, Phone, Mail, Clock, Instagram, Facebook, MessageCircle, ArrowUpRight, Heart } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Footer = () => {
+  const footerRef = useRef<HTMLElement>(null);
   const currentYear = new Date().getFullYear();
 
   const routes = [
@@ -21,13 +27,32 @@ const Footer = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Parallax for footer content
+      gsap.from('.footer-content > div', {
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: 'top 90%',
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: 'power2.out'
+      });
+    }, footerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <footer id="kontak" className="bg-foreground text-background relative">
+    <footer ref={footerRef} id="kontak" className="bg-foreground text-background relative">
       {/* Decorative top border */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
       
       <div className="container py-16 md:py-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="footer-content grid md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-6">

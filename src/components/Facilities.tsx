@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 // Import facility illustrations
 import iconFerryTicket from '@/assets/icon-ferry-ticket.png';
@@ -41,6 +42,9 @@ const facilities = [
 
 const Facilities = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const blob1Ref = useRef<HTMLDivElement>(null);
+  const blob2Ref = useRef<HTMLDivElement>(null);
+  const [showDescription, setShowDescription] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -54,6 +58,7 @@ const Facilities = () => {
         opacity: 0,
         duration: 0.8,
         ease: 'power3.out',
+        onComplete: () => setShowDescription(true),
       });
 
       // Animate cards with stagger
@@ -86,6 +91,47 @@ const Facilities = () => {
         ease: 'back.out(1.7)',
         delay: 0.3,
       });
+
+      // Parallax for decorative blobs
+      if (blob1Ref.current) {
+        gsap.to(blob1Ref.current, {
+          yPercent: 30,
+          xPercent: 20,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 2,
+          }
+        });
+      }
+
+      if (blob2Ref.current) {
+        gsap.to(blob2Ref.current, {
+          yPercent: -20,
+          xPercent: -15,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 2.5,
+          }
+        });
+      }
+
+      // Parallax for cards
+      gsap.to('.facility-card', {
+        yPercent: -10,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.facilities-grid',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        }
+      });
     }, sectionRef);
 
     return () => ctx.revert();
@@ -93,10 +139,18 @@ const Facilities = () => {
 
   return (
     <section ref={sectionRef} className="py-20 bg-gradient-to-br from-primary via-primary to-primary/90 relative overflow-hidden">
-      {/* Background decorations */}
+      {/* Background decorations with parallax */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+        <div 
+          ref={blob1Ref}
+          className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" 
+          style={{ willChange: 'transform' }}
+        />
+        <div 
+          ref={blob2Ref}
+          className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2" 
+          style={{ willChange: 'transform' }}
+        />
       </div>
 
       <div className="container relative z-10">
@@ -108,8 +162,14 @@ const Facilities = () => {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-primary-foreground mb-4">
             Fasilitas Lengkap
           </h2>
-          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg">
-            Nikmati berbagai fasilitas premium yang sudah termasuk dalam harga tiket
+          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg min-h-[2rem]">
+            {showDescription && (
+              <Typewriter
+                text="Nikmati berbagai fasilitas premium yang sudah termasuk dalam harga tiket"
+                speed={30}
+                showCursor={false}
+              />
+            )}
           </p>
         </div>
 

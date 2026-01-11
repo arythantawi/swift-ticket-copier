@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MapPin, Calendar, Wallet, MousePointerClick, Car, Shield, Clock, Headphones } from 'lucide-react';
+import { Typewriter } from '@/hooks/use-typewriter';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,6 +35,7 @@ const features = [
 
 const Features = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const [showDescription, setShowDescription] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -45,7 +47,8 @@ const Features = () => {
         y: 40,
         opacity: 0,
         duration: 0.8,
-        ease: 'power3.out'
+        ease: 'power3.out',
+        onComplete: () => setShowDescription(true),
       });
 
       gsap.from('.feature-card', {
@@ -70,6 +73,30 @@ const Features = () => {
         duration: 0.6,
         ease: 'power2.out'
       });
+
+      // Parallax for feature cards
+      gsap.to('.feature-card', {
+        yPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.feature-grid',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
+        }
+      });
+
+      // Parallax for info section
+      gsap.to('.info-section', {
+        yPercent: -5,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.info-section',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1,
+        }
+      });
     }, sectionRef);
 
     return () => ctx.revert();
@@ -86,8 +113,14 @@ const Features = () => {
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
             Keunggulan Layanan Kami
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Kami berkomitmen memberikan pengalaman perjalanan yang aman, nyaman, dan terpercaya.
+          <p className="text-muted-foreground max-w-2xl mx-auto min-h-[2rem]">
+            {showDescription && (
+              <Typewriter
+                text="Kami berkomitmen memberikan pengalaman perjalanan yang aman, nyaman, dan terpercaya."
+                speed={25}
+                showCursor={false}
+              />
+            )}
           </p>
         </div>
 
