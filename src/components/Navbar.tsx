@@ -16,7 +16,6 @@ const Navbar = () => {
 
   const navLinks = [
     { href: '#rute', label: 'Rute' },
-    { href: '#jadwal', label: 'Jadwal' },
     { href: '#pembayaran', label: 'Pembayaran' },
     { href: '#kontak', label: 'Kontak' },
   ];
@@ -80,6 +79,8 @@ const Navbar = () => {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2"
+            aria-label={isMobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? (
               <X className={`w-6 h-6 ${isScrolled ? 'text-foreground' : 'text-white'}`} />

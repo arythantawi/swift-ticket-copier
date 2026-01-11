@@ -76,35 +76,43 @@ interface TypewriterProps {
   enabled?: boolean;
 }
 
-export const Typewriter = ({
-  text,
-  speed = 50,
-  delay = 0,
-  className = '',
-  cursorClassName = '',
-  showCursor = true,
-  onComplete,
-  enabled = true,
-}: TypewriterProps) => {
-  const { displayedText, isTyping, isComplete } = useTypewriter({
-    text,
-    speed,
-    delay,
-    onComplete,
-    enabled,
-  });
+import { forwardRef } from 'react';
 
-  return (
-    <span className={className}>
-      {displayedText}
-      {showCursor && !isComplete && (
-        <span 
-          className={`inline-block w-[2px] h-[1em] bg-current ml-1 ${isTyping ? 'animate-pulse' : ''} ${cursorClassName}`}
-          style={{ verticalAlign: 'text-bottom' }}
-        />
-      )}
-    </span>
-  );
-};
+export const Typewriter = forwardRef<HTMLSpanElement, TypewriterProps>(
+  function Typewriter(
+    {
+      text,
+      speed = 50,
+      delay = 0,
+      className = '',
+      cursorClassName = '',
+      showCursor = true,
+      onComplete,
+      enabled = true,
+    },
+    ref
+  ) {
+    const { displayedText, isTyping, isComplete } = useTypewriter({
+      text,
+      speed,
+      delay,
+      onComplete,
+      enabled,
+    });
+
+    return (
+      <span ref={ref} className={className}>
+        {displayedText}
+        {showCursor && !isComplete && (
+          <span
+            className={`inline-block w-[2px] h-[1em] bg-current ml-1 ${isTyping ? 'animate-pulse' : ''} ${cursorClassName}`}
+            style={{ verticalAlign: 'text-bottom' }}
+            aria-hidden="true"
+          />
+        )}
+      </span>
+    );
+  }
+);
 
 export default useTypewriter;

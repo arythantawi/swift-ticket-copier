@@ -71,18 +71,23 @@ const Footer = () => {
               <a
                 href="#"
                 className="w-11 h-11 rounded-xl bg-background/10 flex items-center justify-center hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600 transition-all duration-300 group"
+                aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
               <a
                 href="#"
                 className="w-11 h-11 rounded-xl bg-background/10 flex items-center justify-center hover:bg-blue-600 transition-all duration-300 group"
+                aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
               <a
-                href="#"
+                href="https://wa.me/6281234567890"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-11 h-11 rounded-xl bg-background/10 flex items-center justify-center hover:bg-green-500 transition-all duration-300 group"
+                aria-label="WhatsApp"
               >
                 <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
@@ -193,6 +198,7 @@ const Footer = () => {
             <button
               onClick={scrollToTop}
               className="w-10 h-10 rounded-xl bg-background/10 flex items-center justify-center hover:bg-primary transition-colors"
+              aria-label="Kembali ke atas"
             >
               <ArrowUpRight className="w-5 h-5 -rotate-45" />
             </button>

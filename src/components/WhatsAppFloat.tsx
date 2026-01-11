@@ -1,12 +1,20 @@
 import { MessageCircle } from 'lucide-react';
 
 const WhatsAppFloat = () => {
-  const phoneNumber = '6281234567890'; // Ganti dengan nomor WA bisnis
+  // WhatsApp Business number - can be updated to actual number
+  const phoneNumber = '6281234567890';
   const message = 'Halo, saya ingin bertanya tentang layanan Travel Minibus';
   
   const handleClick = () => {
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    // Validate phone number format before constructing URL
+    const sanitizedPhone = phoneNumber.replace(/\D/g, '');
+    if (sanitizedPhone.length < 10 || sanitizedPhone.length > 15) {
+      console.warn('Invalid phone number format');
+      return;
+    }
+    const sanitizedMessage = message.slice(0, 500); // Limit message length
+    const url = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(sanitizedMessage)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
