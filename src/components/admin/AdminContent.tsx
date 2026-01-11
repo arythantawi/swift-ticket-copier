@@ -506,19 +506,39 @@ const AdminContent = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Urutan</TableHead>
+                    <TableHead className="w-20">Urutan</TableHead>
+                    <TableHead className="w-24">Gambar</TableHead>
                     <TableHead>Judul</TableHead>
-                    <TableHead>Subtitle</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
+                    <TableHead className="hidden md:table-cell">Subtitle</TableHead>
+                    <TableHead className="w-20">Status</TableHead>
+                    <TableHead className="text-right w-24">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {banners.map((banner) => (
                     <TableRow key={banner.id}>
                       <TableCell>{banner.display_order}</TableCell>
+                      <TableCell>
+                        {banner.image_url ? (
+                          <div className="w-16 h-10 rounded-md overflow-hidden bg-muted border border-border">
+                            <img 
+                              src={banner.image_url} 
+                              alt={banner.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-destructive">Error</div>';
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-10 rounded-md bg-muted border border-border flex items-center justify-center">
+                            <Image className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{banner.title}</TableCell>
-                      <TableCell className="text-muted-foreground">{banner.subtitle || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground hidden md:table-cell">{banner.subtitle || '-'}</TableCell>
                       <TableCell>
                         <Switch checked={banner.is_active} onCheckedChange={() => toggleBannerActive(banner)} />
                       </TableCell>
