@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import RouteCleanup from "@/components/RouteCleanup";
 import Index from "./pages/Index";
 import SearchResults from "./pages/SearchResults";
 import Booking from "./pages/Booking";
@@ -18,6 +19,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <RouteCleanup />
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Index />} />
