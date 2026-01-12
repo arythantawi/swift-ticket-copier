@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bus, Phone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, X, Bus, Phone, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
@@ -19,6 +20,8 @@ const Navbar = () => {
     { href: '#pembayaran', label: 'Pembayaran' },
     { href: '#kontak', label: 'Kontak' },
   ];
+
+  const trackLink = { to: '/track', label: 'Cek Pesanan' };
 
   return (
     <header
@@ -57,6 +60,15 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
+            <Link
+              to={trackLink.to}
+              className={`font-medium transition-colors hover:text-accent flex items-center gap-1.5 ${
+                isScrolled ? 'text-foreground' : 'text-white/90'
+              }`}
+            >
+              <Search className="w-4 h-4" />
+              {trackLink.label}
+            </Link>
           </div>
 
           {/* CTA Button */}
@@ -95,6 +107,14 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
+              <Link
+                to="/track"
+                className="flex items-center gap-2 px-4 py-3 rounded-lg text-foreground font-medium hover:bg-secondary transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Search className="w-4 h-4" />
+                Cek Pesanan
+              </Link>
               <a
                 href="tel:+6281234567890"
                 className="flex items-center gap-2 px-4 py-3 rounded-lg text-muted-foreground"

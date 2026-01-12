@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Bus, MapPin, Phone, Mail, Clock, Instagram, Facebook, MessageCircle, ArrowUpRight, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Bus, MapPin, Phone, Mail, Clock, Instagram, Facebook, MessageCircle, ArrowUpRight, Heart, Search } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -135,6 +136,18 @@ const Footer = () => {
                 Untuk informasi & bantuan darurat
               </p>
             </div>
+
+            {/* Track Booking Link */}
+            <Link
+              to="/track"
+              className="mt-4 flex items-center gap-2 text-background/60 hover:text-accent transition-colors group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <Search className="w-4 h-4 text-primary group-hover:text-accent transition-colors" />
+              </div>
+              <span className="font-medium text-sm">Cek Status Pesanan</span>
+              <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
           </div>
 
           {/* Contact */}
