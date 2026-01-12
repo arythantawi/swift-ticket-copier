@@ -421,7 +421,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_booking_by_order_id: {
+        Args: { p_order_id: string }
+        Returns: {
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          dropoff_address: string
+          order_id: string
+          passengers: number
+          payment_status: string
+          pickup_address: string
+          pickup_time: string
+          route_from: string
+          route_to: string
+          route_via: string
+          total_price: number
+          travel_date: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
