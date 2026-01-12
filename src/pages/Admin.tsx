@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard,
   Home,
-  PanelLeft
+  PanelLeft,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -17,9 +19,11 @@ import AdminContent from '@/components/admin/AdminContent';
 import AdminVideos from '@/components/admin/AdminVideos';
 import ReportFinance from '@/components/admin/ReportFinance';
 import ReportPassengers from '@/components/admin/ReportPassengers';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const Admin = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, isLoading, signOut } = useAdminAuth();
   const [activeTab, setActiveTab] = useState('bookings');
   const [stats, setStats] = useState({
     total: 0,
@@ -68,6 +72,23 @@ const Admin = () => {
     }
   };
 
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated or not admin, the hook will redirect
+  if (!user || !isAdmin) {
+    return null;
+  }
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">
@@ -87,10 +108,16 @@ const Admin = () => {
                     <h1 className="text-lg font-bold text-foreground">{getPageTitle()}</h1>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-                  <Home className="w-4 h-4 mr-2" />
-                  Beranda
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+                    <Home className="w-4 h-4 mr-2" />
+                    Beranda
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={signOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Keluar
+                  </Button>
+                </div>
               </div>
             </div>
           </header>
