@@ -16,7 +16,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -39,21 +40,63 @@ interface BookingData {
   created_at: string;
 }
 
+// Regex untuk format Order ID
+const ORDER_ID_REGEX = /^TRV-\d{8}-[A-Z0-9]{4}$/;
+
+// Regex untuk format nomor telepon Indonesia
+const PHONE_REGEX = /^(\+62|62|0)8[1-9][0-9]{7,10}$/;
+
 const TrackBooking = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialOrderId = searchParams.get("orderId") || "";
   
   const [orderId, setOrderId] = useState(initialOrderId);
+  const [customerPhone, setCustomerPhone] = useState("");
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  const normalizePhone = (phone: string): string => {
+    // Remove all non-digit characters except +
+    let normalized = phone.replace(/[^\d+]/g, '');
+    
+    // Convert various formats to standard format
+    if (normalized.startsWith('+62')) {
+      normalized = '0' + normalized.slice(3);
+    } else if (normalized.startsWith('62')) {
+      normalized = '0' + normalized.slice(2);
+    }
+    
+    return normalized;
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!orderId.trim()) {
+    const trimmedOrderId = orderId.trim().toUpperCase();
+    const trimmedPhone = customerPhone.trim();
+
+    // Validate Order ID format
+    if (!trimmedOrderId) {
       toast.error("Masukkan Order ID");
+      return;
+    }
+
+    if (!ORDER_ID_REGEX.test(trimmedOrderId)) {
+      toast.error("Format Order ID tidak valid. Contoh: TRV-20260112-ABCD");
+      return;
+    }
+
+    // Validate phone number
+    if (!trimmedPhone) {
+      toast.error("Masukkan nomor telepon");
+      return;
+    }
+
+    const normalizedPhone = normalizePhone(trimmedPhone);
+    if (!PHONE_REGEX.test(normalizedPhone)) {
+      toast.error("Format nomor telepon tidak valid");
       return;
     }
 
@@ -62,10 +105,12 @@ const TrackBooking = () => {
 
     try {
       const { data, error } = await supabase
-        .rpc('get_booking_by_order_id', { p_order_id: orderId.trim().toUpperCase() });
+        .rpc('get_booking_by_order_id', { 
+          p_order_id: trimmedOrderId,
+          p_customer_phone: normalizedPhone 
+        });
 
       if (error) {
-        console.error('Error fetching booking:', error);
         toast.error("Gagal mencari pesanan");
         setBooking(null);
         return;
@@ -75,10 +120,9 @@ const TrackBooking = () => {
         setBooking(data[0] as BookingData);
       } else {
         setBooking(null);
-        toast.error("Pesanan tidak ditemukan");
+        toast.error("Pesanan tidak ditemukan. Pastikan Order ID dan nomor telepon sudah benar.");
       }
-    } catch (err) {
-      console.error('Error:', err);
+    } catch {
       toast.error("Terjadi kesalahan");
       setBooking(null);
     } finally {
@@ -100,6 +144,13 @@ const TrackBooking = () => {
           <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white gap-1">
             <AlertCircle className="w-3 h-3" />
             Menunggu Pembayaran
+          </Badge>
+        );
+      case 'waiting_verification':
+        return (
+          <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1">
+            <Clock className="w-3 h-3" />
+            Menunggu Verifikasi
           </Badge>
         );
       case 'rejected':
@@ -154,18 +205,47 @@ const TrackBooking = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <Input
-                placeholder="Masukkan Order ID (contoh: TRV-20260112-XXXX)"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value.toUpperCase())}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={isLoading}>
+            <form onSubmit={handleSearch} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="orderId" className="text-sm font-medium">
+                  Order ID
+                </label>
+                <Input
+                  id="orderId"
+                  placeholder="TRV-20260112-XXXX"
+                  value={orderId}
+                  onChange={(e) => setOrderId(e.target.value.toUpperCase())}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  Nomor Telepon (untuk verifikasi)
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="08xxxxxxxxxx"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Masukkan nomor telepon yang digunakan saat pemesanan
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Mencari...
+                  </>
                 ) : (
-                  <Search className="w-4 h-4" />
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Cari Pesanan
+                  </>
                 )}
               </Button>
             </form>
@@ -279,6 +359,15 @@ const TrackBooking = () => {
                     </div>
                   )}
 
+                  {booking.payment_status === 'waiting_verification' && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Bukti Pembayaran Diterima!</strong> Tim kami sedang memverifikasi pembayaran Anda. 
+                        Proses verifikasi maksimal 1x24 jam.
+                      </p>
+                    </div>
+                  )}
+
                   {booking.payment_status === 'verified' && (
                     <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
                       <p className="text-sm text-green-800 dark:text-green-200">
@@ -304,7 +393,7 @@ const TrackBooking = () => {
                   <XCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="font-semibold text-lg mb-2">Pesanan Tidak Ditemukan</h3>
                   <p className="text-muted-foreground text-sm">
-                    Pastikan Order ID yang Anda masukkan sudah benar.
+                    Pastikan Order ID dan nomor telepon yang Anda masukkan sudah benar.
                   </p>
                 </CardContent>
               </Card>
@@ -314,9 +403,13 @@ const TrackBooking = () => {
 
         {/* Help Text */}
         {!searched && (
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Masukkan Order ID yang Anda terima saat melakukan pemesanan.</p>
-            <p className="mt-1">Format: TRV-YYYYMMDD-XXXX</p>
+          <div className="text-center text-sm text-muted-foreground space-y-2">
+            <p>Masukkan Order ID dan nomor telepon yang digunakan saat pemesanan.</p>
+            <p className="text-xs">Format Order ID: TRV-YYYYMMDD-XXXX</p>
+            <div className="flex items-center justify-center gap-2 text-xs text-primary">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Verifikasi nomor telepon untuk keamanan data Anda</span>
+            </div>
           </div>
         )}
       </div>

@@ -443,7 +443,7 @@ export type Database = {
     }
     Functions: {
       get_booking_by_order_id: {
-        Args: { p_order_id: string }
+        Args: { p_customer_phone: string; p_order_id: string }
         Returns: {
           created_at: string
           customer_name: string
