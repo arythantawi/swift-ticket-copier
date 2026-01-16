@@ -41,7 +41,8 @@ interface BookingData {
 }
 
 // Regex untuk format Order ID
-const ORDER_ID_REGEX = /^TRV-\d{8}-[A-Z0-9]{4}$/;
+// Support format baru: TRV-YYYYMMDD-XXXX, dan legacy: TRV-<timestamp 13 digit>
+const ORDER_ID_REGEX = /^TRV-(?:\d{8}-[A-Z0-9]{4}|\d{13})$/;
 
 // Regex untuk format nomor telepon Indonesia
 const PHONE_REGEX = /^(\+62|62|0)8[1-9][0-9]{7,10}$/;
