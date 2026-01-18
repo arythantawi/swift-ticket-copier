@@ -168,8 +168,8 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <a href="#" className="text-background/50 hover:text-accent transition-colors">
               Kebijakan Privasi
             </a>
-            <button onClick={scrollToTop} className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-background/10 flex items-center justify-center hover:bg-primary transition-colors" aria-label="Kembali ke atas">
-              <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 -rotate-45" />
+            <button onClick={scrollToTop} className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-background/10 flex items-center justify-center hover:bg-primary transition-colors shrink-0" aria-label="Kembali ke atas">
+              <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 -rotate-45 flex-shrink-0" />
             </button>
           </div>
         </div>
