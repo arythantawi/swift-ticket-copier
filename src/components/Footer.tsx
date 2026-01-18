@@ -93,7 +93,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 <Facebook className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
               <a
-                href="https://wa.me/6281234567890"
+                href="https://wa.me/6281233330042"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-11 h-11 rounded-xl bg-background/10 flex items-center justify-center hover:bg-green-500 transition-all duration-300 group"
@@ -165,7 +165,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <h4 className="font-display font-semibold text-lg mb-6">Hubungi Kami</h4>
             <div className="space-y-4">
               <a
-                href="tel:+6281234567890"
+                href="tel:+6281233330042"
                 className="flex items-start gap-3 text-background/60 hover:text-accent transition-colors group"
               >
                 <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center mt-0.5 group-hover:bg-accent/20 transition-colors">
