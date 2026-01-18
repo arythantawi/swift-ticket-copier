@@ -5,13 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteCleanup from "@/components/RouteCleanup";
-import Index from "./pages/Index";
-import SearchResults from "./pages/SearchResults";
-import Booking from "./pages/Booking";
-import TrackBooking from "./pages/TrackBooking";
-import Admin from "./pages/Admin";
-import AdminLogin from "./pages/AdminLogin";
-import NotFound from "./pages/NotFound";
+import Index from "./pages/index";
+import SearchResults from "./pages/search-results";
+import Booking from "./pages/booking";
+import TrackBooking from "./pages/track-booking";
+import Admin from "./pages/admin";
+import AdminLogin from "./pages/admin-login";
+import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient();
 
