@@ -556,8 +556,16 @@ const AdminContent = () => {
                               alt={banner.title}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-destructive">Error</div>';
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const parent = img.parentElement;
+                                if (parent) {
+                                  parent.textContent = '';
+                                  const errorDiv = document.createElement('div');
+                                  errorDiv.className = 'w-full h-full flex items-center justify-center text-xs text-destructive';
+                                  errorDiv.textContent = 'Error';
+                                  parent.appendChild(errorDiv);
+                                }
                               }}
                             />
                           </div>
