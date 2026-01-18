@@ -12,7 +12,11 @@ import {
   Settings,
   HardDrive,
   Zap,
-  Clock
+  Clock,
+  Download,
+  Archive,
+  FileJson,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +43,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from 'sonner';
 
 interface TableStats {
@@ -54,11 +67,22 @@ interface CleanupSettings {
   keepPaidBookings: boolean;
 }
 
+interface Backup {
+  id: string;
+  backup_type: string;
+  record_count: number;
+  created_at: string;
+  notes: string | null;
+}
+
 const AdminDatabase = () => {
+  const [activeTab, setActiveTab] = useState('monitoring');
   const [tableStats, setTableStats] = useState<TableStats[]>([]);
+  const [backups, setBackups] = useState<Backup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCleaning, setIsCleaning] = useState<string | null>(null);
+  const [isBackingUp, setIsBackingUp] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [cleanupSettings, setCleanupSettings] = useState<CleanupSettings>({
     bookingsOlderThanDays: 90,
@@ -159,13 +183,168 @@ const AdminDatabase = () => {
     }
   }, []);
 
+  // Fetch backups
+  const fetchBackups = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('database_backups')
+        .select('id, backup_type, record_count, created_at, notes')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setBackups(data || []);
+    } catch (error) {
+      console.error('Error fetching backups:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTableStats();
+    fetchBackups();
     
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchTableStats, 30000);
     return () => clearInterval(interval);
-  }, [fetchTableStats]);
+  }, [fetchTableStats, fetchBackups]);
+
+  // Backup functions
+  const backupBookings = async (notes?: string) => {
+    setIsBackingUp('bookings');
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - cleanupSettings.bookingsOlderThanDays);
+      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+
+      // Fetch data to backup
+      let query = supabase
+        .from('bookings')
+        .select('*')
+        .lt('travel_date', cutoffDateStr);
+
+      if (cleanupSettings.keepPaidBookings) {
+        query = query.neq('payment_status', 'paid');
+      }
+
+      const { data: bookingsData, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      if (!bookingsData || bookingsData.length === 0) {
+        toast.info('Tidak ada data pesanan lama untuk di-backup');
+        setIsBackingUp(null);
+        return true;
+      }
+
+      // Save backup - using any type since database_backups is new
+      const { error: backupError } = await (supabase as any)
+        .from('database_backups')
+        .insert({
+          backup_type: 'bookings',
+          backup_data: bookingsData,
+          record_count: bookingsData.length,
+          notes: notes || `Backup sebelum pembersihan: ${bookingsData.length} pesanan lebih dari ${cleanupSettings.bookingsOlderThanDays} hari`,
+        });
+
+      if (backupError) throw backupError;
+
+      toast.success(`Berhasil backup ${bookingsData.length} data pesanan`);
+      fetchBackups();
+      return true;
+    } catch (error) {
+      console.error('Error backing up bookings:', error);
+      toast.error('Gagal backup data pesanan');
+      return false;
+    } finally {
+      setIsBackingUp(null);
+    }
+  };
+
+  const backupOperations = async (notes?: string) => {
+    setIsBackingUp('operations');
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - cleanupSettings.operationsOlderThanDays);
+      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+
+      // Fetch data to backup
+      const { data: operationsData, error: fetchError } = await supabase
+        .from('trip_operations')
+        .select('*')
+        .lt('trip_date', cutoffDateStr);
+
+      if (fetchError) throw fetchError;
+
+      if (!operationsData || operationsData.length === 0) {
+        toast.info('Tidak ada data operasional lama untuk di-backup');
+        setIsBackingUp(null);
+        return true;
+      }
+
+      // Save backup
+      const { error: backupError } = await supabase
+        .from('database_backups')
+        .insert({
+          backup_type: 'operations',
+          backup_data: operationsData,
+          record_count: operationsData.length,
+          notes: notes || `Backup sebelum pembersihan: ${operationsData.length} operasional lebih dari ${cleanupSettings.operationsOlderThanDays} hari`,
+        });
+
+      if (backupError) throw backupError;
+
+      toast.success(`Berhasil backup ${operationsData.length} data operasional`);
+      fetchBackups();
+      return true;
+    } catch (error) {
+      console.error('Error backing up operations:', error);
+      toast.error('Gagal backup data operasional');
+      return false;
+    } finally {
+      setIsBackingUp(null);
+    }
+  };
+
+  const downloadBackup = (backup: Backup) => {
+    // We need to fetch the full backup data to download
+    supabase
+      .from('database_backups')
+      .select('backup_data')
+      .eq('id', backup.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          toast.error('Gagal mengunduh backup');
+          return;
+        }
+
+        const blob = new Blob([JSON.stringify(data.backup_data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup-${backup.backup_type}-${new Date(backup.created_at).toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Backup berhasil diunduh');
+      });
+  };
+
+  const deleteBackup = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('database_backups')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Backup berhasil dihapus');
+      fetchBackups();
+    } catch (error) {
+      console.error('Error deleting backup:', error);
+      toast.error('Gagal menghapus backup');
+    }
+  };
 
   const getProgressColor = (count: number, max: number): string => {
     const percentage = (count / max) * 100;
@@ -186,6 +365,13 @@ const AdminDatabase = () => {
   };
 
   const cleanupOldBookings = async () => {
+    // First backup the data
+    const backupSuccess = await backupBookings();
+    if (!backupSuccess) {
+      toast.error('Pembersihan dibatalkan karena backup gagal');
+      return;
+    }
+
     setIsCleaning('bookings');
     try {
       const cutoffDate = new Date();
@@ -216,6 +402,13 @@ const AdminDatabase = () => {
   };
 
   const cleanupOldOperations = async () => {
+    // First backup the data
+    const backupSuccess = await backupOperations();
+    if (!backupSuccess) {
+      toast.error('Pembersihan dibatalkan karena backup gagal');
+      return;
+    }
+
     setIsCleaning('operations');
     try {
       const cutoffDate = new Date();
@@ -294,10 +487,10 @@ const AdminDatabase = () => {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Database className="w-5 h-5 text-primary" />
-            Kontrol Database
+            Kontrol Database (Super Admin)
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Monitor dan kelola data database secara real-time
+            Monitor dan kelola data database secara real-time dengan backup otomatis
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -310,7 +503,7 @@ const AdminDatabase = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={fetchTableStats}
+            onClick={() => { fetchTableStats(); fetchBackups(); }}
             disabled={isRefreshing}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -319,65 +512,86 @@ const AdminDatabase = () => {
         </div>
       </div>
 
-      {/* Summary Card */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Ringkasan Database</CardTitle>
-          <CardDescription>Total seluruh data tersimpan</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-foreground">{totalRecords.toLocaleString('id-ID')}</p>
-              <p className="text-sm text-muted-foreground">Total Records</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-6 h-6 text-green-500" />
-              <span className="text-sm font-medium text-green-600">Real-time Active</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsTrigger value="monitoring" className="gap-2">
+            <Zap className="w-4 h-4" />
+            <span className="hidden sm:inline">Monitoring</span>
+          </TabsTrigger>
+          <TabsTrigger value="cleanup" className="gap-2">
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Pembersihan</span>
+          </TabsTrigger>
+          <TabsTrigger value="backups" className="gap-2">
+            <Archive className="w-4 h-4" />
+            <span className="hidden sm:inline">Backup</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Table Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {tableStats.map((table) => (
-          <Card key={table.name} className="relative overflow-hidden">
+        {/* Monitoring Tab */}
+        <TabsContent value="monitoring" className="space-y-6 mt-6">
+          {/* Summary Card */}
+          <Card>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <table.icon className="w-4 h-4 text-muted-foreground" />
-                  <CardTitle className="text-sm font-medium">{table.name}</CardTitle>
-                </div>
-                {getStatusBadge(table.count, table.maxRecommended)}
-              </div>
-              <CardDescription className="text-xs">{table.description}</CardDescription>
+              <CardTitle className="text-base">Ringkasan Database</CardTitle>
+              <CardDescription>Total seluruh data tersimpan</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-end justify-between">
-                <p className="text-2xl font-bold">{table.count.toLocaleString('id-ID')}</p>
-                <p className="text-xs text-muted-foreground">/ {table.maxRecommended.toLocaleString('id-ID')}</p>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-foreground">{totalRecords.toLocaleString('id-ID')}</p>
+                  <p className="text-sm text-muted-foreground">Total Records</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-6 h-6 text-green-500" />
+                  <span className="text-sm font-medium text-green-600">Real-time Active</span>
+                </div>
               </div>
-              <Progress 
-                value={Math.min((table.count / table.maxRecommended) * 100, 100)} 
-                className={`h-2 ${getProgressColor(table.count, table.maxRecommended)}`}
-              />
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Cleanup Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Pengaturan Pembersihan Data
-          </CardTitle>
-          <CardDescription>
-            Atur parameter untuk membersihkan data lama dan menghemat ruang database
-          </CardDescription>
-        </CardHeader>
+          {/* Table Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tableStats.map((table) => (
+              <Card key={table.name} className="relative overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <table.icon className="w-4 h-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium">{table.name}</CardTitle>
+                    </div>
+                    {getStatusBadge(table.count, table.maxRecommended)}
+                  </div>
+                  <CardDescription className="text-xs">{table.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-end justify-between">
+                    <p className="text-2xl font-bold">{table.count.toLocaleString('id-ID')}</p>
+                    <p className="text-xs text-muted-foreground">/ {table.maxRecommended.toLocaleString('id-ID')}</p>
+                  </div>
+                  <Progress 
+                    value={Math.min((table.count / table.maxRecommended) * 100, 100)} 
+                    className={`h-2 ${getProgressColor(table.count, table.maxRecommended)}`}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Cleanup Tab */}
+        <TabsContent value="cleanup" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Pengaturan Pembersihan Data
+              </CardTitle>
+              <CardDescription>
+                Data akan di-backup otomatis sebelum dihapus
+              </CardDescription>
+            </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Bookings Cleanup */}
@@ -550,21 +764,100 @@ const AdminDatabase = () => {
         </CardContent>
       </Card>
 
-      {/* Tips */}
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Tips Menghemat Database
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
-          <p>• Hapus pesanan lama yang sudah tidak diperlukan secara berkala</p>
-          <p>• Nonaktifkan konten yang tidak digunakan sebelum menghapusnya</p>
-          <p>• Monitor statistik database secara rutin untuk mencegah data menumpuk</p>
-          <p>• Backup data penting sebelum melakukan pembersihan</p>
-        </CardContent>
-      </Card>
+          {/* Tips */}
+          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Tips Menghemat Database
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
+              <p>• Data akan di-backup otomatis sebelum pembersihan</p>
+              <p>• Backup tersimpan di tab Backup dan bisa diunduh kapan saja</p>
+              <p>• Monitor statistik secara rutin untuk mencegah data menumpuk</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Backups Tab */}
+        <TabsContent value="backups" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Riwayat Backup
+              </CardTitle>
+              <CardDescription>
+                Backup otomatis dibuat sebelum setiap pembersihan data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {backups.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Belum ada backup</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead>Records</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Catatan</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {backups.map((backup) => (
+                      <TableRow key={backup.id}>
+                        <TableCell>
+                          <Badge variant="outline">{backup.backup_type}</Badge>
+                        </TableCell>
+                        <TableCell>{backup.record_count.toLocaleString('id-ID')}</TableCell>
+                        <TableCell>
+                          {new Date(backup.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{backup.notes || '-'}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => downloadBackup(backup)}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus backup?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Backup ini akan dihapus permanen.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteBackup(backup.id)}>
+                                  Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

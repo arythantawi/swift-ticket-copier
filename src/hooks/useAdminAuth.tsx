@@ -6,6 +6,7 @@ import type { User } from '@supabase/supabase-js';
 interface AdminAuthState {
   user: User | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isLoading: boolean;
 }
 
@@ -14,6 +15,7 @@ export const useAdminAuth = () => {
   const [state, setState] = useState<AdminAuthState>({
     user: null,
     isAdmin: false,
+    isSuperAdmin: false,
     isLoading: true,
   });
 
@@ -22,22 +24,24 @@ export const useAdminAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session?.user) {
-          setState({ user: null, isAdmin: false, isLoading: false });
+          setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
           navigate('/admin/login');
           return;
         }
 
-        // Check admin role
+        // Check roles - admin and super_admin
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+          .eq('user_id', session.user.id);
 
-        if (!roleData) {
+        const roles = roleData?.map(r => r.role) || [];
+        const isAdmin = roles.includes('admin') || roles.includes('super_admin');
+        const isSuperAdmin = roles.includes('super_admin');
+
+        if (!isAdmin) {
           await supabase.auth.signOut();
-          setState({ user: null, isAdmin: false, isLoading: false });
+          setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
           navigate('/admin/login');
           return;
         }
@@ -45,6 +49,7 @@ export const useAdminAuth = () => {
         setState({
           user: session.user,
           isAdmin: true,
+          isSuperAdmin,
           isLoading: false,
         });
       }
@@ -55,22 +60,24 @@ export const useAdminAuth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        setState({ user: null, isAdmin: false, isLoading: false });
+        setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
         navigate('/admin/login');
         return;
       }
 
-      // Check admin role
+      // Check roles
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', session.user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+        .eq('user_id', session.user.id);
 
-      if (!roleData) {
+      const roles = roleData?.map(r => r.role) || [];
+      const isAdmin = roles.includes('admin') || roles.includes('super_admin');
+      const isSuperAdmin = roles.includes('super_admin');
+
+      if (!isAdmin) {
         await supabase.auth.signOut();
-        setState({ user: null, isAdmin: false, isLoading: false });
+        setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
         navigate('/admin/login');
         return;
       }
@@ -78,6 +85,7 @@ export const useAdminAuth = () => {
       setState({
         user: session.user,
         isAdmin: true,
+        isSuperAdmin,
         isLoading: false,
       });
     };

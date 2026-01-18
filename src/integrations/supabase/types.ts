@@ -140,6 +140,36 @@ export type Database = {
         }
         Relationships: []
       }
+      database_backups: {
+        Row: {
+          backup_data: Json
+          backup_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          record_count: number
+        }
+        Insert: {
+          backup_data: Json
+          backup_type: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          record_count?: number
+        }
+        Update: {
+          backup_data?: Json
+          backup_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          record_count?: number
+        }
+        Relationships: []
+      }
       faqs: {
         Row: {
           answer: string
@@ -470,7 +500,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -598,7 +628,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
     },
   },
 } as const

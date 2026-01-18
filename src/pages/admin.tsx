@@ -24,7 +24,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, isLoading, signOut } = useAdminAuth();
+  const { user, isAdmin, isSuperAdmin, isLoading, signOut } = useAdminAuth();
   const [activeTab, setActiveTab] = useState('bookings');
   const [stats, setStats] = useState({
     total: 0,
@@ -96,7 +96,7 @@ const Admin = () => {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} isSuperAdmin={isSuperAdmin} />
         
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
