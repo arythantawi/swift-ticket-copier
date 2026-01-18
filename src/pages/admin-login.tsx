@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,31 @@ import { Lock, Mail, Eye, EyeOff, AlertCircle, Shield, Smartphone } from 'lucide
 import logo44Trans from '@/assets/logo-44trans.png';
 import { toast } from 'sonner';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+
+// Helper function to log admin activity
+const logAdminLogin = async (email: string) => {
+  try {
+    await (supabase as any).from('admin_activity_logs').insert({
+      user_email: email,
+      action: 'login',
+      details: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    console.error('Error logging login:', error);
+  }
+};
+
+// Helper function to update MFA status in admin_profiles
+const updateMFAStatus = async (userId: string, enabled: boolean) => {
+  try {
+    await (supabase as any)
+      .from('admin_profiles')
+      .update({ is_mfa_enabled: enabled })
+      .eq('user_id', userId);
+  } catch (error) {
+    console.error('Error updating MFA status:', error);
+  }
+};
 
 type LoginStep = 'credentials' | 'mfa-verify' | 'mfa-enroll';
 
@@ -52,20 +77,22 @@ const AdminLogin = () => {
         return;
       }
 
-      // Check if user has admin role
+      // Check if user has admin or super_admin role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', authData.user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+        .in('role', ['admin', 'super_admin']);
 
-      if (roleError || !roleData) {
+      if (roleError || !roleData || roleData.length === 0) {
         await supabase.auth.signOut();
         setError('Anda tidak memiliki akses admin');
         setIsLoading(false);
         return;
       }
+
+      // Check if user is super_admin
+      const isSuperAdmin = roleData.some(r => r.role === 'super_admin');
 
       // Check MFA factors
       const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
@@ -85,9 +112,14 @@ const AdminLogin = () => {
         setFactorId(verifiedFactor.id);
         setLoginStep('mfa-verify');
         setIsLoading(false);
-      } else {
-        // User doesn't have MFA, require enrollment
+      } else if (isSuperAdmin) {
+        // Only super_admin MUST have MFA - require enrollment
         await enrollMFA();
+      } else {
+        // Regular admin without MFA can proceed directly
+        await logAdminLogin(authData.user.email || '');
+        toast.success('Login berhasil!');
+        navigate('/admin');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -158,6 +190,12 @@ const AdminLogin = () => {
         return;
       }
 
+      // Get current user for logging
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await logAdminLogin(user.email || '');
+      }
+
       toast.success('Login berhasil!');
       navigate('/admin');
     } catch (err) {
@@ -199,6 +237,13 @@ const AdminLogin = () => {
         setTotpCode('');
         setIsLoading(false);
         return;
+      }
+
+      // Get current user and update MFA status
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await updateMFAStatus(user.id, true);
+        await logAdminLogin(user.email || '');
       }
 
       toast.success('2FA berhasil diaktifkan! Login berhasil.');
