@@ -185,7 +185,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 </div>
                 <div>
                   <p className="text-xs text-background/50">Email</p>
-                  <p className="text-background font-medium">info@travelminibus.com</p>
+                  <p className="text-background font-medium text-sm">info@travelminibus.com</p>
                 </div>
               </a>
               <div className="flex items-start gap-3 text-background/60">
