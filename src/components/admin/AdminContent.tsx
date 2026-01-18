@@ -239,14 +239,10 @@ const AdminContent = () => {
   };
 
   const saveBanner = async () => {
-    if (!bannerForm.title) {
-      toast.error('Judul banner wajib diisi');
-      return;
-    }
     setIsSaving(true);
     try {
       const data = {
-        title: bannerForm.title,
+        title: bannerForm.title || null,
         subtitle: bannerForm.subtitle || null,
         image_url: bannerForm.image_url ? convertGoogleDriveUrl(bannerForm.image_url) : null,
         link_url: bannerForm.link_url || null,

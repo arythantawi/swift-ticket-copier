@@ -92,8 +92,8 @@ const AdminVideos = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!form.title.trim() || !form.youtube_url.trim()) {
-      toast.error('Judul dan URL YouTube wajib diisi');
+    if (!form.youtube_url.trim()) {
+      toast.error('URL YouTube wajib diisi');
       return;
     }
 
@@ -114,8 +114,8 @@ const AdminVideos = () => {
           .neq('id', editingVideo?.id || '');
       }
 
-      const videoData = {
-        title: form.title.trim(),
+        const videoData = {
+        title: form.title.trim() || null,
         description: form.description.trim() || null,
         youtube_url: form.youtube_url.trim(),
         thumbnail_url: form.thumbnail_url.trim() || null,
@@ -266,12 +266,12 @@ const AdminVideos = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Judul Video *</Label>
+                <Label htmlFor="title">Judul Video (opsional)</Label>
                 <Input
                   id="title"
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
-                  placeholder="Perjalanan Seru ke Bali"
+                  placeholder="Kosongkan untuk tanpa judul"
                 />
               </div>
 

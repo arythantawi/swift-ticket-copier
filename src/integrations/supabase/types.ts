@@ -25,7 +25,7 @@ export type Database = {
           layout_type: string
           link_url: string | null
           subtitle: string | null
-          title: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -38,7 +38,7 @@ export type Database = {
           layout_type?: string
           link_url?: string | null
           subtitle?: string | null
-          title: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -51,7 +51,7 @@ export type Database = {
           layout_type?: string
           link_url?: string | null
           subtitle?: string | null
-          title?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -405,7 +405,7 @@ export type Database = {
           is_active: boolean
           is_featured: boolean
           thumbnail_url: string | null
-          title: string
+          title: string | null
           updated_at: string
           youtube_url: string
         }
@@ -418,7 +418,7 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           thumbnail_url?: string | null
-          title: string
+          title?: string | null
           updated_at?: string
           youtube_url: string
         }
@@ -431,7 +431,7 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           thumbnail_url?: string | null
-          title?: string
+          title?: string | null
           updated_at?: string
           youtube_url?: string
         }
