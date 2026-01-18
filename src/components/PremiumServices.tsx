@@ -1,26 +1,26 @@
-import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Crown, Car, Heart, Plane, Users, Briefcase, MapPin, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Crown, Car, Heart, Plane, Users, Briefcase, MapPin, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const eventServices = [
-  { icon: Heart, label: 'Nikahan' },
-  { icon: Plane, label: 'Shuttle Bandara' },
-  { icon: Users, label: 'Kunjungan Keluarga' },
-  { icon: Briefcase, label: 'Kunjungan Dinas' },
-  { icon: MapPin, label: 'Carter Drop' },
-  { icon: Sparkles, label: 'Private Wisata' },
+  { icon: Heart, label: "Nikahan" },
+  { icon: Plane, label: "Shuttle Bandara" },
+  { icon: Users, label: "Kunjungan Keluarga" },
+  { icon: Briefcase, label: "Kunjungan Dinas" },
+  { icon: MapPin, label: "Carter Drop" },
+  { icon: Sparkles, label: "Private Wisata" },
 ];
 
 const fleets = [
-  { name: 'Avanza', capacity: '6 Seat' },
-  { name: 'All New Xenia', capacity: '6 Seat' },
-  { name: 'Innova Reborn', capacity: '6 Seat' },
-  { name: 'Hiace Commuter/Premio', capacity: '14 Seat' },
-  { name: 'Elf Long', capacity: '19 Seat' },
+  { name: "Avanza", capacity: "6 Seat" },
+  { name: "All New Xenia", capacity: "6 Seat" },
+  { name: "Innova Reborn", capacity: "6 Seat" },
+  { name: "Hiace Commuter/Premio", capacity: "14 Seat" },
+  { name: "Elf Long", capacity: "19 Seat" },
 ];
 
 const PremiumServices = () => {
@@ -28,52 +28,52 @@ const PremiumServices = () => {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from('.premium-title', {
+      gsap.from(".premium-title", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: 'top 80%',
+          start: "top 80%",
         },
         y: 40,
         opacity: 0,
         duration: 0.8,
-        ease: 'power3.out',
+        ease: "power3.out",
       });
 
-      gsap.from('.premium-card', {
+      gsap.from(".premium-card", {
         scrollTrigger: {
-          trigger: '.premium-grid',
-          start: 'top 85%',
+          trigger: ".premium-grid",
+          start: "top 85%",
         },
         y: 50,
         opacity: 0,
         duration: 0.6,
         stagger: 0.15,
-        ease: 'power2.out',
-        clearProps: 'all',
+        ease: "power2.out",
+        clearProps: "all",
       });
 
-      gsap.from('.event-badge', {
+      gsap.from(".event-badge", {
         scrollTrigger: {
-          trigger: '.events-container',
-          start: 'top 90%',
+          trigger: ".events-container",
+          start: "top 90%",
         },
         scale: 0.8,
         opacity: 0,
         duration: 0.4,
         stagger: 0.08,
-        ease: 'back.out(1.7)',
+        ease: "back.out(1.7)",
       });
 
-      gsap.from('.fleet-item', {
+      gsap.from(".fleet-item", {
         scrollTrigger: {
-          trigger: '.fleet-container',
-          start: 'top 90%',
+          trigger: ".fleet-container",
+          start: "top 90%",
         },
         x: -30,
         opacity: 0,
         duration: 0.4,
         stagger: 0.1,
-        ease: 'power2.out',
+        ease: "power2.out",
       });
     }, sectionRef);
 
@@ -81,8 +81,10 @@ const PremiumServices = () => {
   }, []);
 
   const handleWhatsApp = () => {
-    const message = encodeURIComponent('Halo, saya tertarik dengan layanan Premium Class. Mohon informasi lebih lanjut.');
-    window.open(`https://wa.me/6281234567890?text=${message}`, '_blank');
+    const message = encodeURIComponent(
+      "Halo, saya tertarik dengan layanan Premium Class. Mohon informasi lebih lanjut.",
+    );
+    window.open(`https://wa.me/6281233330042?text=${message}`, "_blank");
   };
 
   return (
@@ -94,9 +96,7 @@ const PremiumServices = () => {
             <Crown className="w-4 h-4" />
             Layanan Eksklusif
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4">
-            Premium Class
-          </h2>
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4">Premium Class</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Sewa mobil dan driver profesional untuk berbagai kebutuhan perjalanan Anda
           </p>
@@ -165,16 +165,11 @@ const PremiumServices = () => {
 
         {/* CTA */}
         <div className="text-center mt-10">
-          <Button 
-            onClick={handleWhatsApp}
-            className="btn-gold px-8 py-6 text-lg gap-2"
-          >
+          <Button onClick={handleWhatsApp} className="btn-gold px-8 py-6 text-lg gap-2">
             <Crown className="w-5 h-5" />
             Hubungi Kami untuk Pemesanan
           </Button>
-          <p className="text-sm text-muted-foreground mt-3">
-            Konsultasi gratis untuk kebutuhan perjalanan Anda
-          </p>
+          <p className="text-sm text-muted-foreground mt-3">Konsultasi gratis untuk kebutuhan perjalanan Anda</p>
         </div>
       </div>
     </section>
