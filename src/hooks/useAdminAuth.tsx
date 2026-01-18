@@ -20,44 +20,56 @@ export const useAdminAuth = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!isMounted) return;
+        
         if (event === 'SIGNED_OUT' || !session?.user) {
           setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
-          navigate('/admin/login');
-          return;
+          return; // Don't redirect here, let signOut handle it
         }
 
-        // Check roles - admin and super_admin
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id);
+        // Use setTimeout to avoid potential deadlocks with Supabase auth
+        setTimeout(async () => {
+          if (!isMounted) return;
+          
+          // Check roles - admin and super_admin
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id);
 
-        const roles = roleData?.map(r => r.role) || [];
-        const isAdmin = roles.includes('admin') || roles.includes('super_admin');
-        const isSuperAdmin = roles.includes('super_admin');
+          const roles = roleData?.map(r => r.role) || [];
+          const isAdmin = roles.includes('admin') || roles.includes('super_admin');
+          const isSuperAdmin = roles.includes('super_admin');
 
-        if (!isAdmin) {
-          await supabase.auth.signOut();
-          setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
-          navigate('/admin/login');
-          return;
-        }
+          if (!isAdmin) {
+            await supabase.auth.signOut();
+            setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
+            navigate('/admin/login');
+            return;
+          }
 
-        setState({
-          user: session.user,
-          isAdmin: true,
-          isSuperAdmin,
-          isLoading: false,
-        });
+          setState({
+            user: session.user,
+            isAdmin: true,
+            isSuperAdmin,
+            isLoading: false,
+          });
+        }, 0);
       }
     );
 
     // THEN check initial session
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!isMounted) return;
       
       if (!session?.user) {
         setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
@@ -93,18 +105,23 @@ export const useAdminAuth = () => {
     checkSession();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
 
   const signOut = async () => {
+    // Reset state first to prevent any re-renders while logging out
+    setState({ user: null, isAdmin: false, isSuperAdmin: false, isLoading: false });
+    
     try {
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Error signing out:', error);
     }
-    // Always redirect regardless of signOut result
-    navigate('/admin/login');
+    
+    // Force navigate to login page
+    window.location.href = '/admin/login';
   };
 
   return { ...state, signOut };
