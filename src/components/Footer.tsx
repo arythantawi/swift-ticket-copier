@@ -72,7 +72,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
                 <Bus className="w-6 h-6 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-xl text-background">Travel Minibus</span>
+              <span className="font-display font-bold text-xl text-background">44 TRANS JAWA BALI</span>
             </div>
             <p className="text-background/60 text-sm mb-8 leading-relaxed">
               Layanan travel minibus profesional untuk perjalanan nyaman dan aman ke berbagai kota di Jawa dan Bali.
