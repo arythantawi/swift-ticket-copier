@@ -469,6 +469,31 @@ const Booking = () => {
 
       if (error) throw error;
 
+      // Send email notification (don't block on this)
+      supabase.functions.invoke('send-booking-notification', {
+        body: {
+          orderId: newOrderId,
+          customerName: formData.name,
+          customerPhone: formData.phone,
+          customerEmail: formData.email || undefined,
+          routeFrom: from,
+          routeTo: to,
+          routeVia: via || undefined,
+          pickupTime: pickupTime,
+          travelDate: travelDate,
+          passengers: passengers,
+          totalPrice: totalPrice,
+          pickupAddress: formData.pickupAddress,
+          dropoffAddress: formData.dropoffAddress || undefined,
+        },
+      }).then((result) => {
+        if (result.error) {
+          console.error('Failed to send notification:', result.error);
+        } else {
+          console.log('Notification sent:', result.data);
+        }
+      }).catch(console.error);
+
       setOrderId(newOrderId);
       setCurrentStep('payment');
       toast.success('Pemesanan berhasil dibuat!');

@@ -4,6 +4,7 @@ import {
   Users,
   UserPlus,
   Shield,
+  ShieldOff,
   Key,
   Phone,
   Mail,
@@ -14,7 +15,9 @@ import {
   CheckCircle2,
   XCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Smartphone,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,8 +88,10 @@ const AdminUsers = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [mfaResetDialogOpen, setMfaResetDialogOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isResettingMFA, setIsResettingMFA] = useState(false);
 
   const [newAdminForm, setNewAdminForm] = useState({
     email: '',
@@ -292,6 +297,37 @@ const AdminUsers = () => {
     }
   };
 
+  const resetMFA = async () => {
+    if (!selectedAdmin) return;
+    
+    setIsResettingMFA(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sesi tidak valid, silakan login ulang');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('reset-user-mfa', {
+        body: { targetUserId: selectedAdmin.user_id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Gagal reset MFA');
+      }
+
+      toast.success(`MFA berhasil di-reset untuk ${selectedAdmin.email}`);
+      setMfaResetDialogOpen(false);
+      setSelectedAdmin(null);
+      fetchAdmins();
+    } catch (error: any) {
+      console.error('Error resetting MFA:', error);
+      toast.error(error.message || 'Gagal reset MFA');
+    } finally {
+      setIsResettingMFA(false);
+    }
+  };
+
   const getActionBadge = (action: string) => {
     switch (action) {
       case 'login':
@@ -304,6 +340,8 @@ const AdminUsers = () => {
         return <Badge className="bg-red-100 text-red-800">Admin Dihapus</Badge>;
       case 'password_reset_requested':
         return <Badge className="bg-yellow-100 text-yellow-800">Reset Password</Badge>;
+      case 'mfa_reset':
+        return <Badge className="bg-orange-100 text-orange-800">Reset MFA</Badge>;
       default:
         return <Badge variant="outline">{action}</Badge>;
     }
@@ -460,6 +498,7 @@ const AdminUsers = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            title="Reset Password"
                             onClick={() => {
                               setSelectedAdmin(admin);
                               setResetDialogOpen(true);
@@ -467,10 +506,23 @@ const AdminUsers = () => {
                           >
                             <Key className="w-4 h-4" />
                           </Button>
+                          {admin.is_mfa_enabled && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Reset MFA/2FA"
+                              onClick={() => {
+                                setSelectedAdmin(admin);
+                                setMfaResetDialogOpen(true);
+                              }}
+                            >
+                              <RotateCcw className="w-4 h-4 text-orange-500" />
+                            </Button>
+                          )}
                           {admin.role !== 'super_admin' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" title="Hapus Admin">
                                   <Trash2 className="w-4 h-4 text-destructive" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -561,6 +613,52 @@ const AdminUsers = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Batal</Button>
             <Button onClick={resetPassword}>Kirim Email Reset</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset MFA Dialog */}
+      <Dialog open={mfaResetDialogOpen} onOpenChange={setMfaResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldOff className="w-5 h-5 text-orange-500" />
+              Reset MFA / Google Authenticator
+            </DialogTitle>
+            <DialogDescription>
+              Reset Two-Factor Authentication untuk {selectedAdmin?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Smartphone className="w-5 h-5 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-orange-800 dark:text-orange-200">Perhatian!</p>
+                  <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                    Tindakan ini akan menghapus semua faktor MFA/2FA yang terdaftar. 
+                    User harus mendaftarkan ulang Google Authenticator saat login berikutnya.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Gunakan fitur ini jika admin kehilangan akses ke aplikasi authenticator mereka 
+              (misalnya: ganti HP, uninstall app, atau reset HP).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMfaResetDialogOpen(false)} disabled={isResettingMFA}>
+              Batal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={resetMFA} 
+              disabled={isResettingMFA}
+            >
+              {isResettingMFA && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Reset MFA
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
