@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeBookings, Booking } from '@/hooks/useRealtimeBookings';
 import { 
   Search, 
   RefreshCw, 
@@ -14,7 +15,8 @@ import {
   Filter,
   MessageCircle,
   Trash2,
-  Eye
+  Eye,
+  Zap
 } from 'lucide-react';
 import OfflineBookingForm from './OfflineBookingForm';
 import { generateTicketPdf } from '@/lib/generateTicketPdf';
@@ -49,29 +51,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 
-interface Booking {
-  id: string;
-  order_id: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string | null;
-  pickup_address: string;
-  dropoff_address: string | null;
-  notes: string | null;
-  route_from: string;
-  route_to: string;
-  route_via: string | null;
-  pickup_time: string;
-  travel_date: string;
-  passengers: number;
-  total_price: number;
-  payment_status: string;
-  payment_proof_url: string | null;
-  payment_proof_drive_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 interface AdminBookingsProps {
   onStatsUpdate: (stats: {
     total: number;
@@ -82,8 +61,7 @@ interface AdminBookingsProps {
 }
 
 const AdminBookings = ({ onStatsUpdate }: AdminBookingsProps) => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { bookings, isLoading, refetch, stats } = useRealtimeBookings(500);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -93,37 +71,15 @@ const AdminBookings = ({ onStatsUpdate }: AdminBookingsProps) => {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const fetchBookings = async () => {
-    setIsLoading(true);
-    try {
-      // Select only required columns for listing
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('id, order_id, customer_name, customer_phone, customer_email, pickup_address, dropoff_address, notes, route_from, route_to, route_via, pickup_time, travel_date, passengers, total_price, payment_status, payment_proof_url, payment_proof_drive_id, created_at, updated_at')
-        .order('created_at', { ascending: false })
-        .limit(500); // Limit results for performance
-
-      if (error) throw error;
-      const bookingsData = data || [];
-      setBookings(bookingsData);
-      
-      onStatsUpdate({
-        total: bookingsData.length,
-        pending: bookingsData.filter(b => b.payment_status === 'pending').length,
-        waitingVerification: bookingsData.filter(b => b.payment_status === 'waiting_verification').length,
-        paid: bookingsData.filter(b => b.payment_status === 'paid').length,
-      });
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      toast.error('Gagal memuat data pemesanan');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Update parent stats when bookings change
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    onStatsUpdate({
+      total: stats.total,
+      pending: stats.pending,
+      waitingVerification: stats.waitingVerification,
+      paid: stats.paid,
+    });
+  }, [stats, onStatsUpdate]);
 
   const updatePaymentStatus = async (orderId: string, newStatus: string) => {
     setIsUpdating(orderId);
@@ -136,7 +92,6 @@ const AdminBookings = ({ onStatsUpdate }: AdminBookingsProps) => {
       if (error) throw error;
       
       toast.success(`Status berhasil diubah ke ${getStatusLabel(newStatus)}`);
-      fetchBookings();
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Gagal mengubah status');
@@ -326,8 +281,14 @@ Terima kasih! 🙏`;
     <div className="space-y-6">
       {/* Header with Offline Booking Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg font-semibold">Daftar Pesanan</h2>
-        <OfflineBookingForm onBookingCreated={fetchBookings} />
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Daftar Pesanan</h2>
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            Real-time
+          </Badge>
+        </div>
+        <OfflineBookingForm onBookingCreated={refetch} />
       </div>
 
       {/* Filters */}
@@ -357,7 +318,7 @@ Terima kasih! 🙏`;
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={fetchBookings} variant="outline" size="icon">
+          <Button onClick={refetch} variant="outline" size="icon">
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>

@@ -11,7 +11,8 @@ import {
   PieChart,
   Settings,
   LayoutGrid,
-  Play
+  Play,
+  Database
 } from 'lucide-react';
 import {
   Sidebar,
@@ -56,12 +57,17 @@ const reportItems = [
   { id: 'report-passengers', title: 'Laporan Penumpang', icon: Users },
 ];
 
+const systemItems = [
+  { id: 'database', title: 'Database', icon: Database },
+];
+
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
   const isManagementActive = managementItems.some(item => item.id === activeTab);
   const isWebsiteActive = websiteItems.some(item => item.id === activeTab);
   const isReportActive = reportItems.some(item => item.id === activeTab);
+  const isSystemActive = systemItems.some(item => item.id === activeTab);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -173,6 +179,45 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {reportItems.map((item) => (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        onClick={() => onTabChange(item.id)}
+                        isActive={activeTab === item.id}
+                        tooltip={item.title}
+                        className={cn(
+                          "w-full justify-start",
+                          activeTab === item.id && "bg-primary/10 text-primary font-medium"
+                        )}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        {/* System Group */}
+        <Collapsible defaultOpen={isSystemActive} className="group/collapsible">
+          <SidebarGroup>
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  {!isCollapsed && <span>Sistem</span>}
+                </div>
+                {!isCollapsed && (
+                  <ChevronDown className="w-4 h-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {systemItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         onClick={() => onTabChange(item.id)}
