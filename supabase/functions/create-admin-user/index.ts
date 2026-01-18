@@ -84,56 +84,88 @@ Deno.serve(async (req) => {
 
     console.log(`Creating admin user: ${email} with role: ${validRole}`);
 
-    // Create user using admin API (bypasses email confirmation)
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-    });
+    // First, check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
 
-    if (createError) {
-      console.error('Error creating user:', createError);
-      return new Response(
-        JSON.stringify({ error: createError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let userId: string;
+
+    if (existingUser) {
+      console.log(`User already exists with ID: ${existingUser.id}, checking role...`);
+      
+      // Check if user already has a role
+      const { data: existingRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', existingUser.id)
+        .in('role', ['admin', 'super_admin'])
+        .maybeSingle();
+
+      if (existingRole) {
+        return new Response(
+          JSON.stringify({ error: `User sudah terdaftar sebagai ${existingRole.role}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // User exists but has no admin role, add the role
+      userId = existingUser.id;
+      console.log(`Adding ${validRole} role to existing user: ${userId}`);
+    } else {
+      // Create new user using admin API (bypasses email confirmation)
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm email
+      });
+
+      if (createError) {
+        console.error('Error creating user:', createError);
+        return new Response(
+          JSON.stringify({ error: createError.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!newUser.user) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to create user' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      userId = newUser.user.id;
+      console.log(`User created with ID: ${userId}`);
     }
-
-    if (!newUser.user) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to create user' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`User created with ID: ${newUser.user.id}`);
 
     // Add role to user_roles table
     const { error: roleInsertError } = await supabaseAdmin
       .from('user_roles')
       .insert({
-        user_id: newUser.user.id,
+        user_id: userId,
         role: validRole,
       });
 
     if (roleInsertError) {
       console.error('Error inserting role:', roleInsertError);
-      // Try to clean up the created user
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      // Only delete user if we just created them (not existing user)
+      if (!existingUser) {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      }
       return new Response(
         JSON.stringify({ error: 'Failed to assign role: ' + roleInsertError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Add admin profile
+    // Add admin profile (use upsert to handle existing profiles)
     const { error: profileError } = await supabaseAdmin
       .from('admin_profiles')
-      .insert({
-        user_id: newUser.user.id,
+      .upsert({
+        user_id: userId,
         phone_number: phone_number || null,
         is_mfa_enabled: false,
-      });
+      }, { onConflict: 'user_id' });
 
     if (profileError) {
       console.error('Error inserting profile:', profileError);
@@ -159,8 +191,8 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         user: { 
-          id: newUser.user.id, 
-          email: newUser.user.email,
+          id: userId, 
+          email: email,
           role: validRole 
         } 
       }),
