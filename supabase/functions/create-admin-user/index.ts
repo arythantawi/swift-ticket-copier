@@ -108,8 +108,19 @@ Deno.serve(async (req) => {
         );
       }
 
-      // User exists but has no admin role, add the role
+      // User exists but has no admin role - update password and add role
       userId = existingUser.id;
+      
+      // Update password for existing user
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: password,
+        email_confirm: true, // Ensure email is confirmed
+      });
+      
+      if (updateError) {
+        console.error('Error updating user password:', updateError);
+      }
+      
       console.log(`Adding ${validRole} role to existing user: ${userId}`);
     } else {
       // Create new user using admin API (bypasses email confirmation)
