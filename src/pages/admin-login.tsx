@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bus, Lock, Mail, Eye, EyeOff, AlertCircle, Shield, Smartphone } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, Shield, Smartphone } from 'lucide-react';
+import logo44Trans from '@/assets/logo-44trans.png';
 import { toast } from 'sonner';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
@@ -410,12 +411,12 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-            {loginStep === 'credentials' ? (
-              <Bus className="w-8 h-8 text-primary" />
-            ) : (
-              <Shield className="w-8 h-8 text-primary" />
-            )}
+          <div className="mx-auto w-20 h-20 rounded-full border-2 border-primary/50 bg-white p-1 shadow-lg flex items-center justify-center">
+            <img 
+              src={logo44Trans} 
+              alt="44 Trans Jawa Bali" 
+              className="w-full h-full object-contain rounded-full"
+            />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">{getTitle()}</CardTitle>
