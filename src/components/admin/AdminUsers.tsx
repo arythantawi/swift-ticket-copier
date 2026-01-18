@@ -194,41 +194,26 @@ const AdminUsers = () => {
 
     setIsCreating(true);
     try {
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newAdminForm.email,
-        password: newAdminForm.password,
+      // Use edge function to create admin user (bypasses email confirmation)
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: {
+          email: newAdminForm.email,
+          password: newAdminForm.password,
+          phone_number: newAdminForm.phone_number || null,
+          role: newAdminForm.role,
+        },
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Add role - cast to proper type
-        const roleValue = newAdminForm.role === 'super_admin' ? 'super_admin' : 'admin';
-        const { error: roleError } = await supabase.from('user_roles').insert({
-          user_id: authData.user.id,
-          role: roleValue as 'admin' | 'super_admin',
-        });
-
-        if (roleError) throw roleError;
-
-        // Add profile
-        await (supabase as any).from('admin_profiles').insert({
-          user_id: authData.user.id,
-          phone_number: newAdminForm.phone_number || null,
-          is_mfa_enabled: false,
-        });
-
-        await logActivity('admin_created', newAdminForm.email, {
-          role: newAdminForm.role,
-          created_by: 'super_admin',
-        });
-
-        toast.success('Admin berhasil ditambahkan');
-        setCreateDialogOpen(false);
-        setNewAdminForm({ email: '', password: '', phone_number: '', role: 'admin' });
-        fetchAdmins();
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
       }
+
+      toast.success('Admin berhasil ditambahkan');
+      setCreateDialogOpen(false);
+      setNewAdminForm({ email: '', password: '', phone_number: '', role: 'admin' });
+      fetchAdmins();
     } catch (error: any) {
       console.error('Error creating admin:', error);
       toast.error(error.message || 'Gagal menambahkan admin');

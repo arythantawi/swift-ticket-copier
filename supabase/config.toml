@@ -2,3 +2,12 @@ project_id = "ojxydihfvorglvmqyyaq"
 
 [functions.upload-to-drive]
 verify_jwt = false
+
+[functions.send-booking-notification]
+verify_jwt = false
+
+[functions.reset-user-mfa]
+verify_jwt = false
+
+[functions.create-admin-user]
+verify_jwt = false
