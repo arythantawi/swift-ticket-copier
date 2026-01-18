@@ -18,6 +18,7 @@ import AdminAnalytics from '@/components/admin/AdminAnalytics';
 import AdminContent from '@/components/admin/AdminContent';
 import AdminVideos from '@/components/admin/AdminVideos';
 import AdminDatabase from '@/components/admin/AdminDatabase';
+import AdminUsers from '@/components/admin/AdminUsers';
 import ReportFinance from '@/components/admin/ReportFinance';
 import ReportPassengers from '@/components/admin/ReportPassengers';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -51,6 +52,8 @@ const Admin = () => {
         return <AdminVideos />;
       case 'database':
         return <AdminDatabase />;
+      case 'admin-users':
+        return <AdminUsers />;
       case 'report-finance':
         return <ReportFinance />;
       case 'report-passengers':
@@ -70,6 +73,7 @@ const Admin = () => {
       case 'content': return 'Manajemen Konten';
       case 'videos': return 'Video Promosi';
       case 'database': return 'Kontrol Database';
+      case 'admin-users': return 'Kelola Admin';
       case 'report-finance': return 'Laporan Keuangan';
       case 'report-passengers': return 'Laporan Penumpang';
       default: return 'Dashboard';

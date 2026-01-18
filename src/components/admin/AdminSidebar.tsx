@@ -60,6 +60,7 @@ const reportItems = [
 
 const systemItems = [
   { id: 'database', title: 'Database', icon: Database },
+  { id: 'admin-users', title: 'Kelola Admin', icon: Settings },
 ];
 
 const AdminSidebar = ({ activeTab, onTabChange, isSuperAdmin = false }: AdminSidebarProps) => {
