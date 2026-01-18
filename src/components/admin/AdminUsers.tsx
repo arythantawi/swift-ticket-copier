@@ -107,39 +107,16 @@ const AdminUsers = () => {
 
   const fetchAdmins = useCallback(async () => {
     try {
-      // Get all user roles for admin/super_admin
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('role', ['admin', 'super_admin']);
+      // Use edge function to get admin list with emails from auth.users
+      const { data, error } = await supabase.functions.invoke('list-admin-users');
 
-      if (rolesError) throw rolesError;
-
-      // Get admin profiles
-      const { data: profiles, error: profilesError } = await (supabase as any)
-        .from('admin_profiles')
-        .select('user_id, phone_number, is_mfa_enabled, created_at');
-
-      if (profilesError) throw profilesError;
-
-      // Combine data
-      const adminList: AdminUser[] = [];
-      for (const role of roles || []) {
-        const profile = (profiles || []).find((p: any) => p.user_id === role.user_id);
-        
-        // Get email from auth - we'll use a workaround since we can't query auth.users directly
-        adminList.push({
-          id: role.user_id,
-          user_id: role.user_id,
-          email: profile?.email || 'N/A',
-          role: role.role,
-          phone_number: profile?.phone_number || null,
-          is_mfa_enabled: profile?.is_mfa_enabled || false,
-          created_at: profile?.created_at || new Date().toISOString(),
-        });
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      setAdmins(adminList);
+      setAdmins(data?.admins || []);
     } catch (error) {
       console.error('Error fetching admins:', error);
       toast.error('Gagal memuat data admin');
@@ -259,26 +236,25 @@ const AdminUsers = () => {
 
   const removeAdmin = async (admin: AdminUser) => {
     try {
-      // Remove role - use proper type casting
-      const roleToDelete = admin.role === 'super_admin' ? 'super_admin' : 'admin';
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', admin.user_id)
-        .eq('role', roleToDelete as 'admin' | 'super_admin');
-
-      if (error) throw error;
-
-      await logActivity('admin_removed', admin.email, {
-        role: admin.role,
-        removed_by: 'super_admin',
+      // Use edge function to delete admin (handles auth.users and roles properly)
+      const { data, error } = await supabase.functions.invoke('delete-admin-user', {
+        body: {
+          user_id: admin.user_id,
+          delete_auth_user: true, // Also delete from auth.users
+        },
       });
 
-      toast.success('Admin berhasil dihapus');
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(data?.message || 'Admin berhasil dihapus');
       fetchAdmins();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing admin:', error);
-      toast.error('Gagal menghapus admin');
+      toast.error(error.message || 'Gagal menghapus admin');
     }
   };
 
