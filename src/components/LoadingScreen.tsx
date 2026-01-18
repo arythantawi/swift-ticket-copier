@@ -21,13 +21,15 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
     if (!container || !logo || !text || !progressBar) return;
 
-    // Create timeline
+    // Create timeline with smoother settings
     const tl = gsap.timeline({
+      defaults: { ease: 'power3.out' },
       onComplete: () => {
-        // Fade out and call complete
+        // Smooth fade out
         gsap.to(container, {
           opacity: 0,
-          duration: 0.5,
+          scale: 1.02,
+          duration: 0.8,
           ease: 'power2.inOut',
           onComplete: onComplete
         });
@@ -35,52 +37,54 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
     });
 
     // Initial state
-    gsap.set(logo, { scale: 0, rotation: -180, opacity: 0 });
-    gsap.set(text, { y: 30, opacity: 0 });
+    gsap.set(logo, { scale: 0, rotation: -360, opacity: 0 });
+    gsap.set(text, { y: 40, opacity: 0 });
     gsap.set(progressBar, { scaleX: 0, transformOrigin: 'left center' });
 
-    // Logo entrance with spin
+    // Logo entrance with smooth spin
     tl.to(logo, {
       scale: 1,
       rotation: 0,
       opacity: 1,
-      duration: 1,
-      ease: 'back.out(1.7)'
+      duration: 1.5,
+      ease: 'elastic.out(1, 0.5)'
     });
 
-    // Logo pulse effect
+    // Logo breathing pulse effect
     tl.to(logo, {
-      scale: 1.1,
-      duration: 0.3,
-      ease: 'power2.out',
+      scale: 1.08,
+      duration: 0.5,
+      ease: 'sine.inOut',
       yoyo: true,
-      repeat: 1
+      repeat: 2
     });
 
-    // Text fade in
+    // Text fade in with stagger
     tl.to(text, {
       y: 0,
       opacity: 1,
-      duration: 0.5,
-      ease: 'power2.out'
-    }, '-=0.3');
+      duration: 0.8,
+      ease: 'power3.out'
+    }, '-=0.8');
 
-    // Progress bar animation
+    // Progress bar animation - longer duration
     tl.to(progressBar, {
       scaleX: 1,
-      duration: 1.2,
-      ease: 'power2.inOut',
+      duration: 2,
+      ease: 'power1.inOut',
       onUpdate: function() {
         setProgress(Math.round(this.progress() * 100));
       }
-    }, '-=0.3');
+    }, '-=0.5');
 
-    // Final logo glow effect
+    // Final logo glow effect with pulse
     tl.to(logo, {
-      boxShadow: '0 0 40px rgba(180, 142, 38, 0.6)',
-      duration: 0.3,
-      ease: 'power2.out'
-    }, '-=0.2');
+      boxShadow: '0 0 60px rgba(180, 142, 38, 0.7)',
+      duration: 0.6,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: 1
+    }, '-=0.8');
 
     return () => {
       tl.kill();
