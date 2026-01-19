@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useVideos } from '@/hooks/useSiteData';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ const categoryLabels: Record<VideoCategory, string> = {
   tutorial: 'Tutorial',
   testimoni: 'Testimoni',
 };
+
+const AUTOPLAY_INTERVAL = 5000; // 5 seconds
 
 // Extract YouTube video ID from various URL formats
 const getYouTubeId = (url: string): string | null => {
@@ -57,14 +59,73 @@ const VideoSection = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(true);
+  const [autoplayProgress, setAutoplayProgress] = useState(0);
   
   const sectionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const mainVideoRef = useRef<HTMLDivElement>(null);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const parallaxBg1Ref = useRef<HTMLDivElement>(null);
+  const parallaxBg2Ref = useRef<HTMLDivElement>(null);
+  const parallaxBg3Ref = useRef<HTMLDivElement>(null);
+  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // GSAP Animations
+  // Filter videos based on category
+  const filteredVideos = activeCategory === 'semua' 
+    ? videos 
+    : videos.filter(v => v.category === activeCategory);
+
+  // Get available categories that have videos
+  const availableCategories = ['semua', ...new Set(videos.map(v => v.category))] as VideoCategory[];
+
+  const activeVideo = filteredVideos[activeVideoIndex];
+
+  // Handle video selection with animation
+  const handleVideoSelect = useCallback((index: number, skipAnimation = false) => {
+    if (index === activeVideoIndex && !skipAnimation) return;
+    
+    // Reset autoplay progress
+    setAutoplayProgress(0);
+    
+    if (skipAnimation) {
+      setActiveVideoIndex(index);
+      setIsPlaying(false);
+      return;
+    }
+    
+    // Animate out current video
+    gsap.to(mainVideoRef.current, {
+      opacity: 0,
+      scale: 0.98,
+      duration: 0.3,
+      ease: 'power2.in',
+      onComplete: () => {
+        setActiveVideoIndex(index);
+        setIsPlaying(false);
+        // Animate in new video
+        gsap.fromTo(
+          mainVideoRef.current,
+          { opacity: 0, scale: 0.98 },
+          { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }
+        );
+      },
+    });
+  }, [activeVideoIndex]);
+
+  const handleNextVideo = useCallback(() => {
+    const newIndex = activeVideoIndex < filteredVideos.length - 1 ? activeVideoIndex + 1 : 0;
+    handleVideoSelect(newIndex);
+  }, [activeVideoIndex, filteredVideos.length, handleVideoSelect]);
+
+  const handlePrevVideo = useCallback(() => {
+    const newIndex = activeVideoIndex > 0 ? activeVideoIndex - 1 : filteredVideos.length - 1;
+    handleVideoSelect(newIndex);
+  }, [activeVideoIndex, filteredVideos.length, handleVideoSelect]);
+
+  // GSAP Animations with Parallax
   useEffect(() => {
     const ctx = createSafeGsapContext(sectionRef, () => {
       // Header animation
@@ -102,6 +163,51 @@ const VideoSection = () => {
         }
       );
 
+      // Parallax background effects
+      if (parallaxBg1Ref.current) {
+        gsap.to(parallaxBg1Ref.current, {
+          y: -100,
+          x: 50,
+          scale: 1.2,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1,
+          },
+        });
+      }
+
+      if (parallaxBg2Ref.current) {
+        gsap.to(parallaxBg2Ref.current, {
+          y: 80,
+          x: -30,
+          scale: 0.9,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1.5,
+          },
+        });
+      }
+
+      if (parallaxBg3Ref.current) {
+        gsap.to(parallaxBg3Ref.current, {
+          y: -60,
+          rotate: 15,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 2,
+          },
+        });
+      }
+
       // Thumbnails stagger animation
       if (thumbnailsRef.current) {
         const thumbnails = thumbnailsRef.current.querySelectorAll('.video-thumbnail');
@@ -128,60 +234,55 @@ const VideoSection = () => {
     return () => ctx?.revert();
   }, [videos]);
 
-  // Filter videos based on category
-  const filteredVideos = activeCategory === 'semua' 
-    ? videos 
-    : videos.filter(v => v.category === activeCategory);
+  // Autoplay carousel logic
+  useEffect(() => {
+    if (!isAutoplayEnabled || isPlaying || filteredVideos.length <= 1) {
+      if (autoplayTimerRef.current) clearTimeout(autoplayTimerRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setAutoplayProgress(0);
+      return;
+    }
 
-  // Get available categories that have videos
-  const availableCategories = ['semua', ...new Set(videos.map(v => v.category))] as VideoCategory[];
+    // Progress bar update
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / AUTOPLAY_INTERVAL) * 100, 100);
+      setAutoplayProgress(progress);
+    }, 50);
+
+    // Auto advance to next video
+    autoplayTimerRef.current = setTimeout(() => {
+      handleNextVideo();
+    }, AUTOPLAY_INTERVAL);
+
+    return () => {
+      if (autoplayTimerRef.current) clearTimeout(autoplayTimerRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, [activeVideoIndex, isAutoplayEnabled, isPlaying, filteredVideos.length, handleNextVideo]);
 
   // Reset active video when category changes
   useEffect(() => {
     setActiveVideoIndex(0);
     setIsPlaying(false);
+    setAutoplayProgress(0);
   }, [activeCategory]);
-
-  const activeVideo = filteredVideos[activeVideoIndex];
-
-  const handleVideoSelect = (index: number) => {
-    if (index === activeVideoIndex) return;
-    
-    // Animate out current video
-    gsap.to(mainVideoRef.current, {
-      opacity: 0,
-      scale: 0.98,
-      duration: 0.3,
-      ease: 'power2.in',
-      onComplete: () => {
-        setActiveVideoIndex(index);
-        setIsPlaying(false);
-        // Animate in new video
-        gsap.fromTo(
-          mainVideoRef.current,
-          { opacity: 0, scale: 0.98 },
-          { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }
-        );
-      },
-    });
-  };
-
-  const handlePrevVideo = () => {
-    const newIndex = activeVideoIndex > 0 ? activeVideoIndex - 1 : filteredVideos.length - 1;
-    handleVideoSelect(newIndex);
-  };
-
-  const handleNextVideo = () => {
-    const newIndex = activeVideoIndex < filteredVideos.length - 1 ? activeVideoIndex + 1 : 0;
-    handleVideoSelect(newIndex);
-  };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+    // Pause autoplay when video is playing
+    if (!isPlaying) {
+      setIsAutoplayEnabled(false);
+    }
   };
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+  };
+
+  const toggleAutoplay = () => {
+    setIsAutoplayEnabled(!isAutoplayEnabled);
   };
 
   const openFullscreen = () => {
@@ -214,10 +315,25 @@ const VideoSection = () => {
       ref={sectionRef} 
       className="relative py-16 md:py-24 overflow-hidden"
     >
-      {/* Background Elements */}
+      {/* Parallax Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/30 to-background" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+      
+      {/* Floating parallax shapes */}
+      <div 
+        ref={parallaxBg1Ref}
+        className="absolute top-20 left-[10%] w-72 h-72 md:w-96 md:h-96 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full blur-3xl pointer-events-none"
+      />
+      <div 
+        ref={parallaxBg2Ref}
+        className="absolute bottom-20 right-[10%] w-64 h-64 md:w-80 md:h-80 bg-gradient-to-tr from-accent/10 to-accent/5 rounded-full blur-3xl pointer-events-none"
+      />
+      <div 
+        ref={parallaxBg3Ref}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-primary/5 rounded-full pointer-events-none"
+      />
+      
+      {/* Decorative grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(var(--primary-rgb),0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(var(--primary-rgb),0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
       
       <div className="container relative px-4 sm:px-6">
         {/* Section Header */}
@@ -269,6 +385,16 @@ const VideoSection = () => {
             <div className="relative max-w-5xl mx-auto">
               {/* Video Container */}
               <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/20">
+                {/* Autoplay Progress Bar */}
+                {isAutoplayEnabled && !isPlaying && filteredVideos.length > 1 && (
+                  <div className="absolute top-0 left-0 right-0 z-20 h-1 bg-white/20">
+                    <div 
+                      className="h-full bg-primary transition-all duration-100 ease-linear"
+                      style={{ width: `${autoplayProgress}%` }}
+                    />
+                  </div>
+                )}
+
                 <div className="aspect-video relative">
                   {isPlaying ? (
                     <iframe
@@ -323,6 +449,11 @@ const VideoSection = () => {
                         <span className="px-2.5 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full capitalize">
                           {activeVideo.category}
                         </span>
+                        {filteredVideos.length > 1 && (
+                          <span className="px-2.5 py-1 bg-white/10 text-white text-xs font-medium rounded-full">
+                            {activeVideoIndex + 1} / {filteredVideos.length}
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-white text-lg md:text-2xl font-bold truncate">
                         {activeVideo.title}
@@ -336,6 +467,30 @@ const VideoSection = () => {
                     
                     {/* Control Buttons */}
                     <div className="flex items-center gap-2">
+                      {/* Autoplay Toggle */}
+                      {filteredVideos.length > 1 && !isPlaying && (
+                        <button
+                          onClick={toggleAutoplay}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            isAutoplayEnabled 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                          title={isAutoplayEnabled ? 'Autoplay On' : 'Autoplay Off'}
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0Z" />
+                            <path d="M12 2v2" />
+                            <path d="M12 20v2" />
+                            <path d="m4.93 4.93 1.41 1.41" />
+                            <path d="m17.66 17.66 1.41 1.41" />
+                            <path d="M2 12h2" />
+                            <path d="M20 12h2" />
+                            <path d="m6.34 17.66-1.41 1.41" />
+                            <path d="m19.07 4.93-1.41 1.41" />
+                          </svg>
+                        </button>
+                      )}
                       {isPlaying && (
                         <>
                           <button
@@ -381,17 +536,17 @@ const VideoSection = () => {
                 )}
               </div>
 
-              {/* Video Counter */}
+              {/* Video Counter Dots */}
               {filteredVideos.length > 1 && (
                 <div className="flex justify-center mt-4 gap-1.5">
                   {filteredVideos.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => handleVideoSelect(index)}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                      className={`h-2 rounded-full transition-all duration-300 ${
                         index === activeVideoIndex 
                           ? 'w-8 bg-primary' 
-                          : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                          : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                       }`}
                     />
                   ))}
@@ -453,8 +608,9 @@ const VideoSection = () => {
                   {/* Active indicator */}
                   {index === activeVideoIndex && (
                     <div className="absolute top-2 right-2">
-                      <span className="px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        Playing
+                      <span className="px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-primary-foreground rounded-full animate-pulse" />
+                        Now
                       </span>
                     </div>
                   )}
