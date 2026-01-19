@@ -384,7 +384,7 @@ const VideoSection = () => {
           <div ref={mainVideoRef} className="mb-8">
             <div className="relative max-w-5xl mx-auto">
               {/* Video Container */}
-              <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/20">
+              <div className="group/video relative rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/20">
                 {/* Autoplay Progress Bar */}
                 {isAutoplayEnabled && !isPlaying && filteredVideos.length > 1 && (
                   <div className="absolute top-0 left-0 right-0 z-20 h-1 bg-white/20">
@@ -441,8 +441,12 @@ const VideoSection = () => {
                   )}
                 </div>
 
-                {/* Video Controls Bar */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                {/* Video Controls Bar - Hidden when playing, shown on hover/touch */}
+                <div className={`absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-all duration-300 ${
+                  isPlaying 
+                    ? 'opacity-0 translate-y-4 group-hover/video:opacity-100 group-hover/video:translate-y-0' 
+                    : 'opacity-100 translate-y-0'
+                }`}>
                   <div className="flex items-end justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
@@ -517,18 +521,26 @@ const VideoSection = () => {
                   </div>
                 </div>
 
-                {/* Navigation Arrows */}
+                {/* Navigation Arrows - Hidden when playing, shown on hover/touch */}
                 {filteredVideos.length > 1 && (
                   <>
                     <button
                       onClick={handlePrevVideo}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-all hover:scale-110"
+                      className={`absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-all hover:scale-110 ${
+                        isPlaying 
+                          ? 'opacity-0 -translate-x-4 group-hover/video:opacity-100 group-hover/video:translate-x-0' 
+                          : 'opacity-100 translate-x-0'
+                      }`}
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
                       onClick={handleNextVideo}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-all hover:scale-110"
+                      className={`absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-all hover:scale-110 ${
+                        isPlaying 
+                          ? 'opacity-0 translate-x-4 group-hover/video:opacity-100 group-hover/video:translate-x-0' 
+                          : 'opacity-100 translate-x-0'
+                      }`}
                     >
                       <ChevronRight className="w-6 h-6" />
                     </button>
