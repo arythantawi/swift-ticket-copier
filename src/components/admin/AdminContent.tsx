@@ -816,18 +816,18 @@ const AdminContent = () => {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive">
+                            <Button variant="destructive" size="icon">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Hapus Testimoni?</AlertDialogTitle>
-                              <AlertDialogDescription>Testimoni dari "{testimonial.customer_name}" akan dihapus permanen.</AlertDialogDescription>
+                              <AlertDialogDescription>Testimoni dari "{testimonial.customer_name}" akan dihapus permanen dan tidak dapat dikembalikan.</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteTestimonial(testimonial.id)}>Hapus</AlertDialogAction>
+                              <AlertDialogAction onClick={() => deleteTestimonial(testimonial.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
