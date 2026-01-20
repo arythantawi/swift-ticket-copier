@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { CreditCard, Loader2, CheckCircle, AlertCircle, ExternalLink, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -50,11 +50,32 @@ const MidtransPayment = ({
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'pending' | 'error'>('idle');
   const [isSnapLoaded, setIsSnapLoaded] = useState(false);
+  const [clientKey, setClientKey] = useState<string | null>(null);
 
-  // Load Midtrans Snap script
+  // Fetch client key from edge function
   useEffect(() => {
+    const fetchClientKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-midtrans-client-key');
+        if (error) throw error;
+        if (data?.client_key) {
+          setClientKey(data.client_key);
+        }
+      } catch (err) {
+        console.error('Failed to fetch Midtrans client key:', err);
+      }
+    };
+    fetchClientKey();
+  }, []);
+
+  // Load Midtrans Snap script when client key is available
+  useEffect(() => {
+    if (!clientKey) return;
+
     const existingScript = document.getElementById('midtrans-snap');
     if (existingScript) {
+      // Update client key if script already exists
+      existingScript.setAttribute('data-client-key', clientKey);
       setIsSnapLoaded(true);
       return;
     }
@@ -63,7 +84,7 @@ const MidtransPayment = ({
     script.id = 'midtrans-snap';
     // Use sandbox URL for testing, production for live
     script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-    script.setAttribute('data-client-key', import.meta.env.VITE_MIDTRANS_CLIENT_KEY || '');
+    script.setAttribute('data-client-key', clientKey);
     script.async = true;
     script.onload = () => setIsSnapLoaded(true);
     script.onerror = () => {
@@ -75,7 +96,42 @@ const MidtransPayment = ({
     return () => {
       // Don't remove script on cleanup to avoid reloading
     };
-  }, []);
+  }, [clientKey]);
+
+  const openSnapPopup = useCallback((token: string) => {
+    if (!isSnapLoaded || !window.snap) {
+      console.error('Snap not loaded');
+      return;
+    }
+
+    window.snap.pay(token, {
+      onSuccess: (result) => {
+        console.log('Payment success:', result);
+        setPaymentStatus('success');
+        toast.success('Pembayaran berhasil!');
+        onSuccess?.();
+      },
+      onPending: (result) => {
+        console.log('Payment pending:', result);
+        setPaymentStatus('pending');
+        toast.info('Pembayaran sedang diproses');
+        onPending?.();
+      },
+      onError: (result) => {
+        console.error('Payment error:', result);
+        setPaymentStatus('error');
+        toast.error('Pembayaran gagal');
+        onError?.('Payment failed');
+      },
+      onClose: () => {
+        console.log('Payment popup closed');
+        if (paymentStatus === 'processing') {
+          setPaymentStatus('idle');
+          toast.info('Pembayaran dibatalkan');
+        }
+      },
+    });
+  }, [isSnapLoaded, paymentStatus, onSuccess, onPending, onError]);
 
   const createTransaction = async () => {
     setIsLoading(true);
@@ -108,33 +164,7 @@ const MidtransPayment = ({
       
       // Try to open Snap popup
       if (isSnapLoaded && window.snap && data.token) {
-        window.snap.pay(data.token, {
-          onSuccess: (result) => {
-            console.log('Payment success:', result);
-            setPaymentStatus('success');
-            toast.success('Pembayaran berhasil!');
-            onSuccess?.();
-          },
-          onPending: (result) => {
-            console.log('Payment pending:', result);
-            setPaymentStatus('pending');
-            toast.info('Pembayaran sedang diproses');
-            onPending?.();
-          },
-          onError: (result) => {
-            console.error('Payment error:', result);
-            setPaymentStatus('error');
-            toast.error('Pembayaran gagal');
-            onError?.('Payment failed');
-          },
-          onClose: () => {
-            console.log('Payment popup closed');
-            if (paymentStatus === 'processing') {
-              setPaymentStatus('idle');
-              toast.info('Pembayaran dibatalkan');
-            }
-          },
-        });
+        openSnapPopup(data.token);
       }
     } catch (error) {
       console.error('Error creating transaction:', error);
@@ -199,11 +229,11 @@ const MidtransPayment = ({
       <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-6 border border-primary/20">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-            <CreditCard className="w-6 h-6 text-primary" />
+            <Wallet className="w-6 h-6 text-primary" />
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Pembayaran Online</h3>
-            <p className="text-sm text-muted-foreground">Midtrans Payment Gateway</p>
+            <p className="text-sm text-muted-foreground">Powered by Midtrans</p>
           </div>
         </div>
 
@@ -216,10 +246,18 @@ const MidtransPayment = ({
 
         <div className="text-sm text-muted-foreground mb-4">
           <p className="mb-2">Metode pembayaran yang tersedia:</p>
-          <div className="flex flex-wrap gap-2">
-            {['Bank Transfer', 'E-Wallet', 'QRIS', 'Kartu Kredit'].map((method) => (
-              <span key={method} className="px-2 py-1 bg-secondary rounded text-xs">
-                {method}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { name: 'QRIS', icon: '📱' },
+              { name: 'GoPay', icon: '💚' },
+              { name: 'OVO', icon: '💜' },
+              { name: 'DANA', icon: '💙' },
+              { name: 'Bank Transfer', icon: '🏦' },
+              { name: 'Kartu Kredit', icon: '💳' },
+            ].map((method) => (
+              <span key={method.name} className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg text-xs">
+                <span>{method.icon}</span>
+                <span>{method.name}</span>
               </span>
             ))}
           </div>
@@ -227,8 +265,8 @@ const MidtransPayment = ({
 
         <Button
           onClick={createTransaction}
-          disabled={isLoading || !isSnapLoaded}
-          className="w-full gap-2"
+          disabled={isLoading || !clientKey}
+          className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           size="lg"
         >
           {isLoading ? (
@@ -244,8 +282,9 @@ const MidtransPayment = ({
           )}
         </Button>
 
-        {!isSnapLoaded && (
-          <p className="text-xs text-center text-muted-foreground mt-2">
+        {!clientKey && (
+          <p className="text-xs text-center text-muted-foreground mt-2 flex items-center justify-center gap-2">
+            <Loader2 className="w-3 h-3 animate-spin" />
             Memuat payment gateway...
           </p>
         )}
@@ -264,7 +303,7 @@ const MidtransPayment = ({
       </div>
 
       <p className="text-xs text-center text-muted-foreground">
-        Pembayaran diproses secara aman oleh Midtrans
+        🔒 Transaksi aman & terenkripsi
       </p>
     </div>
   );

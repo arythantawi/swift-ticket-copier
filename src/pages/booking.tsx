@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, MapPin, Users, Calendar, User, Phone, Mail, MapPinned, CheckCircle, Printer, Navigation, Edit3, Loader2, Map, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Users, Calendar, User, Phone, Mail, MapPinned, CheckCircle, Printer, Navigation, Edit3, Loader2, Map, AlertTriangle, CreditCard, Wallet, Building2 } from 'lucide-react';
 
 // Lazy load MiniMap to avoid SSR issues with Leaflet
 const MiniMap = lazy(() => import('@/components/MiniMap'));
@@ -11,6 +11,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PaymentInfoBooking from '@/components/PaymentInfoBooking';
 import PaymentUpload from '@/components/PaymentUpload';
+import MidtransPayment from '@/components/MidtransPayment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { generateTicketPdf } from '@/lib/generateTicketPdf';
@@ -18,6 +19,7 @@ import { getRoutePrice } from '@/lib/scheduleData';
 
 type BookingStep = 'form' | 'payment' | 'success';
 type AddressMode = 'gps' | 'manual';
+type PaymentMethod = 'transfer' | 'online';
 
 const Booking = () => {
   const [searchParams] = useSearchParams();
@@ -26,6 +28,7 @@ const Booking = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>('form');
   const [orderId, setOrderId] = useState<string>('');
   const [paymentUploaded, setPaymentUploaded] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
   const [addressMode, setAddressMode] = useState<AddressMode>('gps');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -510,6 +513,19 @@ const Booking = () => {
     setCurrentStep('success');
   };
 
+  const handleMidtransSuccess = () => {
+    setCurrentStep('success');
+  };
+
+  const handleMidtransPending = () => {
+    toast.info('Silakan selesaikan pembayaran Anda');
+  };
+
+  const handleMidtransError = (error: string) => {
+    console.error('Midtrans error:', error);
+    toast.error('Pembayaran gagal. Silakan coba lagi atau gunakan transfer manual.');
+  };
+
   // Success Screen
   if (currentStep === 'success') {
     return (
@@ -612,18 +628,115 @@ const Booking = () => {
               Kembali ke Form
             </Button>
 
+            {/* Payment Method Selection */}
+            <div className="mb-6">
+              <h2 className="font-display text-lg md:text-xl font-bold text-foreground mb-4">
+                Pilih Metode Pembayaran
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPaymentMethod('online')}
+                  className={`relative flex flex-col items-center gap-2 p-4 md:p-6 rounded-xl border-2 transition-all ${
+                    paymentMethod === 'online'
+                      ? 'border-primary bg-primary/10 shadow-lg'
+                      : 'border-border bg-secondary/30 hover:border-primary/50'
+                  }`}
+                >
+                  {paymentMethod === 'online' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    paymentMethod === 'online' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  }`}>
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-semibold text-sm md:text-base ${
+                      paymentMethod === 'online' ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      Bayar Online
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      QRIS, E-Wallet, Bank, Kartu
+                    </p>
+                  </div>
+                  <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
+                    Instan
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setPaymentMethod('transfer')}
+                  className={`relative flex flex-col items-center gap-2 p-4 md:p-6 rounded-xl border-2 transition-all ${
+                    paymentMethod === 'transfer'
+                      ? 'border-primary bg-primary/10 shadow-lg'
+                      : 'border-border bg-secondary/30 hover:border-primary/50'
+                  }`}
+                >
+                  {paymentMethod === 'transfer' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    paymentMethod === 'transfer' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  }`}>
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-semibold text-sm md:text-base ${
+                      paymentMethod === 'transfer' ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      Transfer Manual
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Transfer Bank BCA
+                    </p>
+                  </div>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                    Upload Bukti
+                  </span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4 md:gap-6">
-              {/* Payment Info */}
+              {/* Payment Method Content */}
               <div>
-                <PaymentInfoBooking orderId={orderId} totalPrice={totalPrice} />
+                {paymentMethod === 'online' ? (
+                  <MidtransPayment
+                    orderId={orderId}
+                    grossAmount={totalPrice}
+                    customerName={formData.name}
+                    customerEmail={formData.email || undefined}
+                    customerPhone={formData.phone}
+                    itemDetails={[
+                      {
+                        id: 'TICKET',
+                        name: `Tiket ${from} - ${to} (${passengers} pax)`,
+                        price: pricePerPerson,
+                        quantity: passengers,
+                      }
+                    ]}
+                    onSuccess={handleMidtransSuccess}
+                    onPending={handleMidtransPending}
+                    onError={handleMidtransError}
+                  />
+                ) : (
+                  <PaymentInfoBooking orderId={orderId} totalPrice={totalPrice} />
+                )}
               </div>
 
-              {/* Upload & Summary */}
+              {/* Upload (for transfer) & Summary */}
               <div className="space-y-6">
-                <PaymentUpload 
-                  orderId={orderId} 
-                  onUploadSuccess={handlePaymentUploadSuccess}
-                />
+                {paymentMethod === 'transfer' && (
+                  <PaymentUpload 
+                    orderId={orderId} 
+                    onUploadSuccess={handlePaymentUploadSuccess}
+                  />
+                )}
 
                 {/* Trip Summary */}
                 <div className="elevated-card p-4 md:p-6">
@@ -632,6 +745,10 @@ const Booking = () => {
                   </h3>
                   
                   <div className="space-y-2 md:space-y-3 text-xs md:text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Order ID</span>
+                      <span className="font-mono font-bold text-primary">{orderId}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Rute</span>
                       <span className="font-medium text-foreground">
@@ -654,7 +771,20 @@ const Booking = () => {
                       <span className="text-muted-foreground">Harga/orang</span>
                       <span className="font-medium text-foreground">{formatPrice(pricePerPerson)}</span>
                     </div>
+                    <div className="flex justify-between pt-2 border-t border-border">
+                      <span className="font-semibold text-foreground">Total</span>
+                      <span className="font-bold text-accent text-lg">{formatPrice(totalPrice)}</span>
+                    </div>
                   </div>
+                </div>
+
+                {/* Payment Method Info */}
+                <div className="text-xs text-center text-muted-foreground bg-secondary/30 rounded-lg p-3">
+                  {paymentMethod === 'online' ? (
+                    <p>💳 Pembayaran diproses secara aman oleh <strong>Midtrans</strong></p>
+                  ) : (
+                    <p>🏦 Transfer ke rekening di atas, lalu upload bukti pembayaran</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.check-midtrans-status]
 verify_jwt = false
+
+[functions.get-midtrans-client-key]
+verify_jwt = false
