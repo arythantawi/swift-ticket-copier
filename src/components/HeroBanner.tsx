@@ -15,7 +15,36 @@ interface Banner {
   link_url: string | null;
   button_text: string | null;
   layout_type: string;
+  aspect_ratio: string | null;
 }
+
+// Get aspect ratio class based on ratio string
+const getAspectRatioClass = (ratio: string | null): string => {
+  switch (ratio) {
+    case '21:9': return 'aspect-[21/9]';
+    case '16:9': return 'aspect-video';
+    case '3:2': return 'aspect-[3/2]';
+    case '4:3': return 'aspect-[4/3]';
+    case '1:1': return 'aspect-square';
+    case '3:4': return 'aspect-[3/4]';
+    case '9:16': return 'aspect-[9/16]';
+    default: return 'aspect-video';
+  }
+};
+
+// Get mobile-friendly aspect ratio (portrait modes stay portrait, landscape modes are capped)
+const getMobileAspectRatioClass = (ratio: string | null): string => {
+  switch (ratio) {
+    case '21:9': return 'aspect-video'; // Convert ultra-wide to 16:9 on mobile
+    case '16:9': return 'aspect-video';
+    case '3:2': return 'aspect-[3/2]';
+    case '4:3': return 'aspect-[4/3]';
+    case '1:1': return 'aspect-square';
+    case '3:4': return 'aspect-[3/4]';
+    case '9:16': return 'aspect-[9/16]';
+    default: return 'aspect-video';
+  }
+};
 
 // Helper function to convert Google Drive links to direct image URL
 const convertGoogleDriveUrl = (url: string | null): string | null => {
@@ -563,24 +592,47 @@ const HeroBanner = () => {
     );
   };
 
+  // Get current banner's aspect ratio
+  const currentAspectRatio = currentBanner?.aspect_ratio || '16:9';
+
+  // Convert aspect ratio string to CSS value
+  const getAspectValue = (ratio: string | null, isMobile: boolean = false): string => {
+    const r = ratio || '16:9';
+    // On mobile, convert ultra-wide to standard wide
+    if (isMobile && r === '21:9') return '16/9';
+    return r.replace(':', '/');
+  };
+
   return (
     <section ref={sectionRef} className="py-8 md:py-12 bg-background">
       <div className="container">
         <div className="relative rounded-3xl overflow-hidden shadow-2xl">
           <ProgressBar />
           
-          {/* Slides container */}
+          {/* Slides container - uses dynamic aspect ratio based on current banner */}
           <div 
             ref={slidesContainerRef}
-            className="relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden"
+            className="relative w-full overflow-hidden transition-all duration-500"
+            style={{
+              '--mobile-aspect': getAspectValue(currentAspectRatio, true),
+              '--desktop-aspect': getAspectValue(currentAspectRatio, false),
+              aspectRatio: 'var(--mobile-aspect)'
+            } as React.CSSProperties}
           >
+            <style>{`
+              @media (min-width: 768px) {
+                [style*="--desktop-aspect"] {
+                  aspect-ratio: var(--desktop-aspect) !important;
+                }
+              }
+            `}</style>
             {banners.map((banner, index) => renderSlide(banner, index))}
           </div>
           
           <NavigationArrows />
           <DotsIndicator position="bottom-6" />
           
-          {/* Banner counter */}
+          {/* Banner counter with aspect ratio indicator */}
           {banners.length > 1 && (
             <div className="absolute top-4 right-4 z-30 bg-black/30 backdrop-blur-md text-white text-sm px-4 py-2 rounded-full border border-white/10">
               <span className="font-semibold">{currentIndex + 1}</span>

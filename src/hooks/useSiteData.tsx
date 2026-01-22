@@ -10,6 +10,7 @@ interface Banner {
   link_url: string | null;
   button_text: string | null;
   layout_type: string;
+  aspect_ratio: string | null;
 }
 
 interface Video {
@@ -102,7 +103,7 @@ export const SiteDataProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('banners')
-        .select('id, title, subtitle, image_url, link_url, button_text, layout_type')
+        .select('id, title, subtitle, image_url, link_url, button_text, layout_type, aspect_ratio')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -212,7 +213,7 @@ export const SiteDataProvider = ({ children }: { children: ReactNode }) => {
       const [bannersRes, videosRes, promosRes, faqsRes, testimonialsRes] = await Promise.all([
         supabase
           .from('banners')
-          .select('id, title, subtitle, image_url, link_url, button_text, layout_type')
+          .select('id, title, subtitle, image_url, link_url, button_text, layout_type, aspect_ratio')
           .eq('is_active', true)
           .order('display_order', { ascending: true }),
         supabase

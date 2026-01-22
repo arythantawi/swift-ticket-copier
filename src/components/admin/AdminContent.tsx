@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Plus, 
@@ -66,6 +66,7 @@ interface Banner {
   display_order: number;
   is_active: boolean;
   layout_type: string;
+  aspect_ratio: string | null;
 }
 
 interface Promo {
@@ -137,8 +138,10 @@ const AdminContent = () => {
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [bannerForm, setBannerForm] = useState({
-    title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption'
+    title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption', aspect_ratio: '16:9'
   });
+  const [detectedAspectRatio, setDetectedAspectRatio] = useState<string | null>(null);
+  const [isDetectingRatio, setIsDetectingRatio] = useState(false);
 
   // Promos state
   const [promos, setPromos] = useState<Promo[]>([]);
@@ -174,7 +177,7 @@ const AdminContent = () => {
     setBannersLoading(true);
     const { data, error } = await supabase
       .from('banners')
-      .select('id, title, subtitle, image_url, link_url, button_text, layout_type, display_order, is_active, created_at, updated_at')
+      .select('id, title, subtitle, image_url, link_url, button_text, layout_type, display_order, is_active, aspect_ratio, created_at, updated_at')
       .order('display_order')
       .limit(100);
     if (!error) setBanners(data || []);
@@ -220,7 +223,48 @@ const AdminContent = () => {
   }, []);
 
   // Banner handlers
+  // Detect image aspect ratio from URL
+  const detectImageAspectRatio = useCallback(async (imageUrl: string) => {
+    if (!imageUrl) {
+      setDetectedAspectRatio(null);
+      return;
+    }
+    
+    setIsDetectingRatio(true);
+    const convertedUrl = convertGoogleDriveUrl(imageUrl);
+    
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      const ratio = width / height;
+      
+      // Determine closest common aspect ratio
+      let detected = '16:9';
+      if (ratio >= 2.2) detected = '21:9';
+      else if (ratio >= 1.7) detected = '16:9';
+      else if (ratio >= 1.4) detected = '3:2';
+      else if (ratio >= 1.2) detected = '4:3';
+      else if (ratio >= 0.9) detected = '1:1';
+      else if (ratio >= 0.7) detected = '3:4';
+      else detected = '9:16';
+      
+      setDetectedAspectRatio(`${detected} (${width}×${height}px)`);
+      setIsDetectingRatio(false);
+    };
+    
+    img.onerror = () => {
+      setDetectedAspectRatio(null);
+      setIsDetectingRatio(false);
+    };
+    
+    img.src = convertedUrl;
+  }, []);
+
   const openBannerDialog = (banner?: Banner) => {
+    setDetectedAspectRatio(null);
     if (banner) {
       setEditingBanner(banner);
       setBannerForm({
@@ -232,10 +276,15 @@ const AdminContent = () => {
         display_order: banner.display_order,
         is_active: banner.is_active,
         layout_type: banner.layout_type || 'image_caption',
+        aspect_ratio: banner.aspect_ratio || '16:9',
       });
+      // Detect aspect ratio for existing image
+      if (banner.image_url) {
+        detectImageAspectRatio(banner.image_url);
+      }
     } else {
       setEditingBanner(null);
-      setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption' });
+      setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', button_text: '', display_order: 0, is_active: true, layout_type: 'image_caption', aspect_ratio: '16:9' });
     }
     setBannerDialogOpen(true);
   };
@@ -252,6 +301,7 @@ const AdminContent = () => {
         display_order: bannerForm.display_order,
         is_active: bannerForm.is_active,
         layout_type: bannerForm.layout_type,
+        aspect_ratio: bannerForm.aspect_ratio,
       };
       if (editingBanner) {
         const { error } = await supabase.from('banners').update(data).eq('id', editingBanner.id);
@@ -880,15 +930,52 @@ const AdminContent = () => {
                 <Input value={bannerForm.subtitle} onChange={(e) => setBannerForm({...bannerForm, subtitle: e.target.value})} />
               </div>
               <div className="space-y-2">
+                <Label>Aspect Ratio</Label>
+                <Select 
+                  value={bannerForm.aspect_ratio} 
+                  onValueChange={(value) => setBannerForm({...bannerForm, aspect_ratio: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih aspect ratio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="21:9">📐 21:9 (Ultra Wide)</SelectItem>
+                    <SelectItem value="16:9">📺 16:9 (Landscape)</SelectItem>
+                    <SelectItem value="3:2">📷 3:2 (Photo)</SelectItem>
+                    <SelectItem value="4:3">🖥️ 4:3 (Standard)</SelectItem>
+                    <SelectItem value="1:1">⬜ 1:1 (Square)</SelectItem>
+                    <SelectItem value="3:4">📱 3:4 (Portrait)</SelectItem>
+                    <SelectItem value="9:16">📲 9:16 (Mobile)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Ukuran container banner di website
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label>URL Gambar</Label>
                 <Input 
                   value={bannerForm.image_url} 
-                  onChange={(e) => setBannerForm({...bannerForm, image_url: e.target.value})} 
+                  onChange={(e) => {
+                    setBannerForm({...bannerForm, image_url: e.target.value});
+                    detectImageAspectRatio(e.target.value);
+                  }} 
                   placeholder="https://drive.google.com/file/d/.../view" 
                 />
                 <p className="text-xs text-muted-foreground">
                   ✅ Mendukung link Google Drive atau link langsung
                 </p>
+                {isDetectingRatio && (
+                  <p className="text-xs text-primary flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    Mendeteksi ukuran gambar...
+                  </p>
+                )}
+                {detectedAspectRatio && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    📏 Ukuran terdeteksi: {detectedAspectRatio}
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -921,6 +1008,7 @@ const AdminContent = () => {
                 link_url={bannerForm.link_url}
                 button_text={bannerForm.button_text}
                 layout_type={bannerForm.layout_type}
+                aspect_ratio={bannerForm.aspect_ratio}
               />
             </div>
           </div>

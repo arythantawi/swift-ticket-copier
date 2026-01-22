@@ -76,6 +76,7 @@ export type Database = {
       }
       banners: {
         Row: {
+          aspect_ratio: string | null
           button_text: string | null
           created_at: string
           display_order: number
@@ -89,6 +90,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aspect_ratio?: string | null
           button_text?: string | null
           created_at?: string
           display_order?: number
@@ -102,6 +104,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aspect_ratio?: string | null
           button_text?: string | null
           created_at?: string
           display_order?: number
