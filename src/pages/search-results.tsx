@@ -131,12 +131,15 @@ const SearchResults = () => {
                         <p className="text-xs text-muted-foreground">Harga/orang</p>
                         <p className="text-lg md:text-xl font-bold text-primary">{formatPrice(schedule.price)}</p>
                       </div>
-                      <Button 
+                      <button 
                         onClick={() => handleBook(schedule)}
-                        className="btn-gold text-sm md:text-base px-4 md:px-6"
+                        className="cta-btn relative flex justify-center items-center rounded-md bg-[#183153] shadow-[0px_6px_24px_0px_rgba(0,0,0,0.2)] overflow-hidden cursor-pointer border-none group"
                       >
-                        Pesan Sekarang
-                      </Button>
+                        <span className="absolute inset-0 w-0 bg-accent transition-all duration-400 ease-in-out right-0 group-hover:w-full group-hover:left-0" />
+                        <span className="relative text-center w-full px-4 md:px-6 py-2.5 text-white text-xs md:text-sm font-bold tracking-[0.15em] z-20 transition-all duration-300 ease-in-out group-hover:text-[#183153] group-hover:animate-[scaleUp_0.3s_ease-in-out]">
+                          PESAN SEKARANG
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </div>
