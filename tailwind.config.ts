@@ -113,6 +113,15 @@ export default {
           "50%": { transform: "scale(0.95)" },
           "100%": { transform: "scale(1)" },
         },
+        "borderSpin": {
+          "0%": { transform: "rotate(0deg)", background: "conic-gradient(hsl(var(--primary)), transparent 20%)" },
+          "80%": { background: "conic-gradient(hsl(var(--primary)), transparent 90%)" },
+          "100%": { transform: "rotate(360deg)", background: "conic-gradient(hsl(var(--primary)), hsl(var(--primary)))" },
+        },
+        "reveal": {
+          "0%": { width: "0" },
+          "100%": { width: "4px" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

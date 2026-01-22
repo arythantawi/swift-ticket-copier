@@ -422,21 +422,20 @@ const VideoSection = () => {
                       {/* Overlay Gradient */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                       
-                      {/* Play Button */}
-                      <button
+                      {/* Animated Play Button */}
+                      <div 
                         onClick={togglePlay}
-                        className="absolute inset-0 flex items-center justify-center group"
+                        className="absolute inset-0 flex items-center justify-center cursor-pointer group"
                       >
-                        <div className="relative">
-                          {/* Pulse rings */}
-                          <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: '2s' }} />
-                          <div className="absolute -inset-4 rounded-full bg-primary/20 animate-pulse" />
-                          {/* Play button */}
-                          <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary flex items-center justify-center shadow-xl shadow-primary/30 transition-transform duration-300 group-hover:scale-110">
-                            <Play className="w-8 h-8 md:w-10 md:h-10 text-primary-foreground ml-1" fill="currentColor" />
-                          </div>
+                        <div className="play-container w-24 h-24 md:w-32 md:h-32 relative rounded-full">
+                          {/* Conic gradient border */}
+                          <div className="absolute inset-0 rounded-full bg-[conic-gradient(hsl(var(--primary)),hsl(var(--primary)))] animate-[borderSpin_2s_linear_infinite]" />
+                          {/* Inner black circle */}
+                          <div className="absolute w-[93%] h-[93%] bg-black rounded-full left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          {/* Play triangle icon */}
+                          <div className="absolute w-10 h-10 md:w-12 md:h-12 left-[55%] top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary rotate-90 transition-all duration-300 group-hover:scale-110" style={{ clipPath: 'polygon(50% 15%, 0% 100%, 100% 100%)' }} />
                         </div>
-                      </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -511,12 +510,30 @@ const VideoSection = () => {
                           </button>
                         </>
                       )}
-                      <button
+                      <div 
                         onClick={togglePlay}
-                        className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shadow-lg"
+                        className="play-container-sm w-12 h-12 relative rounded-full cursor-pointer group"
                       >
-                        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" fill="currentColor" />}
-                      </button>
+                        {/* Conic gradient border */}
+                        <div className={`absolute inset-0 rounded-full transition-all duration-700 ${
+                          isPlaying 
+                            ? 'bg-[conic-gradient(hsl(var(--primary)),hsl(var(--primary)))]' 
+                            : 'bg-[conic-gradient(hsl(var(--primary)),transparent_20%)]'
+                        } ${isPlaying ? 'animate-[borderSpin_700ms_ease-in-out]' : ''}`} />
+                        {/* Inner circle */}
+                        <div className="absolute w-[85%] h-[85%] bg-primary rounded-full left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-colors" />
+                        {/* Play/Pause icons */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {isPlaying ? (
+                            <div className="flex gap-1">
+                              <div className="w-1 h-4 bg-primary-foreground rounded-sm animate-[reveal_300ms_ease-in-out_forwards]" />
+                              <div className="w-1 h-4 bg-primary-foreground rounded-sm animate-[reveal_300ms_ease-in-out_150ms_forwards]" />
+                            </div>
+                          ) : (
+                            <div className="w-4 h-4 bg-primary-foreground rotate-90 ml-0.5 transition-all duration-300 group-hover:scale-110" style={{ clipPath: 'polygon(50% 15%, 0% 100%, 100% 100%)' }} />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
