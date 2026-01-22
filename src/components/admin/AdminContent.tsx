@@ -223,8 +223,8 @@ const AdminContent = () => {
   }, []);
 
   // Banner handlers
-  // Detect image aspect ratio from URL
-  const detectImageAspectRatio = useCallback(async (imageUrl: string) => {
+  // Detect image aspect ratio from URL and optionally auto-set
+  const detectImageAspectRatio = useCallback(async (imageUrl: string, autoSet: boolean = false) => {
     if (!imageUrl) {
       setDetectedAspectRatio(null);
       return;
@@ -253,6 +253,11 @@ const AdminContent = () => {
       
       setDetectedAspectRatio(`${detected} (${width}×${height}px)`);
       setIsDetectingRatio(false);
+      
+      // Auto-set aspect ratio if enabled
+      if (autoSet) {
+        setBannerForm(prev => ({ ...prev, aspect_ratio: detected }));
+      }
     };
     
     img.onerror = () => {
@@ -262,6 +267,16 @@ const AdminContent = () => {
     
     img.src = convertedUrl;
   }, []);
+
+  // Apply detected aspect ratio to form
+  const applyDetectedAspectRatio = useCallback(() => {
+    if (!detectedAspectRatio) return;
+    // Extract ratio from string like "16:9 (1920×1080px)"
+    const ratioMatch = detectedAspectRatio.match(/^(\d+:\d+)/);
+    if (ratioMatch) {
+      setBannerForm(prev => ({ ...prev, aspect_ratio: ratioMatch[1] }));
+    }
+  }, [detectedAspectRatio]);
 
   const openBannerDialog = (banner?: Banner) => {
     setDetectedAspectRatio(null);
@@ -958,7 +973,8 @@ const AdminContent = () => {
                   value={bannerForm.image_url} 
                   onChange={(e) => {
                     setBannerForm({...bannerForm, image_url: e.target.value});
-                    detectImageAspectRatio(e.target.value);
+                    // Auto-detect and auto-set aspect ratio
+                    detectImageAspectRatio(e.target.value, true);
                   }} 
                   placeholder="https://drive.google.com/file/d/.../view" 
                 />
@@ -972,9 +988,20 @@ const AdminContent = () => {
                   </p>
                 )}
                 {detectedAspectRatio && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    📏 Ukuran terdeteksi: {detectedAspectRatio}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                      📏 Terdeteksi: {detectedAspectRatio}
+                    </p>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-6 text-xs px-2"
+                      onClick={applyDetectedAspectRatio}
+                    >
+                      Terapkan
+                    </Button>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
