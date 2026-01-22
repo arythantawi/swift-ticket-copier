@@ -20,15 +20,3 @@ verify_jwt = false
 
 [functions.create-admin-user]
 verify_jwt = false
-
-[functions.create-midtrans-transaction]
-verify_jwt = false
-
-[functions.midtrans-webhook]
-verify_jwt = false
-
-[functions.check-midtrans-status]
-verify_jwt = false
-
-[functions.get-midtrans-client-key]
-verify_jwt = false
