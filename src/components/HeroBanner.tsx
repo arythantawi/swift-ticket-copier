@@ -106,6 +106,7 @@ const HeroBanner = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTextVisible, setIsTextVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   
   const sectionRef = useRef<HTMLElement>(null);
   const slidesContainerRef = useRef<HTMLDivElement>(null);
@@ -652,6 +653,22 @@ const HeroBanner = () => {
     return r.replace(':', '/');
   };
 
+  // Listen for resize to determine desktop/mobile
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Get the appropriate aspect ratio based on screen size
+  const containerAspectRatio = isDesktop 
+    ? getAspectValue(currentAspectRatio, false) 
+    : getAspectValue(currentAspectRatio, true);
+
   return (
     <section ref={sectionRef} className="py-8 md:py-12 bg-background">
       <div className="container">
@@ -662,19 +679,8 @@ const HeroBanner = () => {
           <div 
             ref={slidesContainerRef}
             className="relative w-full overflow-hidden transition-all duration-500"
-            style={{
-              '--mobile-aspect': getAspectValue(currentAspectRatio, true),
-              '--desktop-aspect': getAspectValue(currentAspectRatio, false),
-              aspectRatio: 'var(--mobile-aspect)'
-            } as React.CSSProperties}
+            style={{ aspectRatio: containerAspectRatio }}
           >
-            <style>{`
-              @media (min-width: 768px) {
-                [style*="--desktop-aspect"] {
-                  aspect-ratio: var(--desktop-aspect) !important;
-                }
-              }
-            `}</style>
             {banners.map((banner, index) => renderSlide(banner, index))}
           </div>
           
