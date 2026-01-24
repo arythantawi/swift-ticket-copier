@@ -223,7 +223,7 @@ const AdminContent = () => {
   }, []);
 
   // Banner handlers
-  // Detect image aspect ratio from URL and optionally auto-set
+  // Detect image aspect ratio from URL and optionally auto-set (only if not custom)
   const detectImageAspectRatio = useCallback(async (imageUrl: string, autoSet: boolean = false) => {
     if (!imageUrl) {
       setDetectedAspectRatio(null);
@@ -254,9 +254,15 @@ const AdminContent = () => {
       setDetectedAspectRatio(`${detected} (${width}×${height}px)`);
       setIsDetectingRatio(false);
       
-      // Auto-set aspect ratio if enabled
+      // Auto-set aspect ratio if enabled AND current aspect ratio is NOT custom
       if (autoSet) {
-        setBannerForm(prev => ({ ...prev, aspect_ratio: detected }));
+        setBannerForm(prev => {
+          // Don't override if user has set a custom aspect ratio
+          if (prev.aspect_ratio?.startsWith('custom:')) {
+            return prev;
+          }
+          return { ...prev, aspect_ratio: detected };
+        });
       }
     };
     
