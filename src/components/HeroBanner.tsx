@@ -456,13 +456,13 @@ const HeroBanner = () => {
             className="relative w-full h-full cursor-pointer"
             onClick={isActive ? handleBannerClick : undefined}
           >
-            <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0">
               {hasImage ? (
                 <img 
                   ref={(el) => imageRefs.current[index] = el}
                   src={convertGoogleDriveUrl(banner.image_url)!}
                   alt={banner.title}
-                  className="w-full h-[120%] object-cover -mt-[10%]"
+                  className="w-full h-full object-contain"
                   draggable={false}
                   style={{ willChange: 'transform' }}
                 />
@@ -514,11 +514,11 @@ const HeroBanner = () => {
             )}
           </div>
         ) : layoutType === 'image_overlay' ? (
-          <div className="relative w-full h-full overflow-hidden">
+          <div className="relative w-full h-full">
             {hasImage && (
               <div 
                 ref={(el) => imageRefs.current[index] = el}
-                className="absolute inset-0 h-[120%] -mt-[10%] bg-cover bg-center"
+                className="absolute inset-0 bg-contain bg-center bg-no-repeat"
                 style={{ backgroundImage: `url(${convertGoogleDriveUrl(banner.image_url)})`, willChange: 'transform' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
@@ -551,12 +551,12 @@ const HeroBanner = () => {
           <div className="relative w-full h-full flex flex-col">
             {hasImage ? (
               <>
-                <div className="flex-1 relative overflow-hidden">
+                <div className="flex-1 relative">
                   <img 
                     ref={(el) => imageRefs.current[index] = el}
                     src={convertGoogleDriveUrl(banner.image_url)!}
                     alt={banner.title}
-                    className="w-full h-[120%] -mt-[10%] object-cover"
+                    className="w-full h-full object-contain"
                     style={{ willChange: 'transform' }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
