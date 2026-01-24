@@ -107,6 +107,7 @@ const HeroBanner = () => {
   const [isTextVisible, setIsTextVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : false);
+  const [isHovered, setIsHovered] = useState(false);
   
   const sectionRef = useRef<HTMLElement>(null);
   const slidesContainerRef = useRef<HTMLDivElement>(null);
@@ -381,7 +382,7 @@ const HeroBanner = () => {
   // Navigation Arrows
   const NavigationArrows = () => (
     banners.length > 1 ? (
-      <>
+      <div className={`transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
         <button
           onClick={(e) => { e.stopPropagation(); goToPrevious(); resetAutoPlay(); }}
           disabled={isAnimating}
@@ -396,14 +397,14 @@ const HeroBanner = () => {
         >
           <ChevronRight className="w-6 h-6 md:w-7 md:h-7 group-hover:translate-x-0.5 transition-transform" />
         </button>
-      </>
+      </div>
     ) : null
   );
 
   // Dots Indicator
   const DotsIndicator = ({ position = 'bottom-6' }: { position?: string }) => (
     banners.length > 1 ? (
-      <div className={`absolute ${position} left-1/2 -translate-x-1/2 z-30 flex items-center gap-3`}>
+      <div className={`absolute ${position} left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
         {banners.map((_, index) => (
           <button
             key={index}
@@ -427,7 +428,7 @@ const HeroBanner = () => {
   // Progress Bar
   const ProgressBar = () => (
     banners.length > 1 ? (
-      <div className="absolute top-0 left-0 right-0 z-30 h-1 bg-white/20">
+      <div className={`absolute top-0 left-0 right-0 z-30 h-1 bg-white/20 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
         <div 
           className="h-full bg-gradient-to-r from-white via-white to-white/80 transition-all duration-300"
           style={{ 
@@ -673,7 +674,13 @@ const HeroBanner = () => {
   return (
     <section ref={sectionRef} className="py-8 md:py-12 bg-background">
       <div className="container">
-        <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+        <div 
+          className="relative rounded-3xl overflow-hidden shadow-2xl"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onTouchStart={() => setIsHovered(true)}
+          onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
+        >
           <ProgressBar />
           
           {/* Slides container - uses dynamic aspect ratio based on current banner */}
@@ -690,7 +697,7 @@ const HeroBanner = () => {
           
           {/* Banner counter with aspect ratio indicator */}
           {banners.length > 1 && (
-            <div className="absolute top-4 right-4 z-30 bg-black/30 backdrop-blur-md text-white text-sm px-4 py-2 rounded-full border border-white/10">
+            <div className={`absolute top-4 right-4 z-30 bg-black/30 backdrop-blur-md text-white text-sm px-4 py-2 rounded-full border border-white/10 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
               <span className="font-semibold">{currentIndex + 1}</span>
               <span className="text-white/60"> / {banners.length}</span>
             </div>
