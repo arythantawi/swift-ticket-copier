@@ -947,10 +947,13 @@ const AdminContent = () => {
               <div className="space-y-2">
                 <Label>Aspect Ratio</Label>
                 <Select 
-                  value={bannerForm.aspect_ratio.includes('custom:') ? 'custom' : bannerForm.aspect_ratio} 
+                  value={bannerForm.aspect_ratio?.startsWith('custom:') ? 'custom' : bannerForm.aspect_ratio} 
                   onValueChange={(value) => {
                     if (value === 'custom') {
-                      setBannerForm({...bannerForm, aspect_ratio: 'custom:16:9'});
+                      // Preserve existing custom values if already custom, otherwise default to 16:9
+                      if (!bannerForm.aspect_ratio?.startsWith('custom:')) {
+                        setBannerForm({...bannerForm, aspect_ratio: 'custom:16:9'});
+                      }
                     } else {
                       setBannerForm({...bannerForm, aspect_ratio: value});
                     }
@@ -972,7 +975,7 @@ const AdminContent = () => {
                     <SelectItem value="custom">✏️ Custom</SelectItem>
                   </SelectContent>
                 </Select>
-                {bannerForm.aspect_ratio.includes('custom:') && (
+                {bannerForm.aspect_ratio?.startsWith('custom:') && (
                   <div className="flex items-center gap-2 mt-2">
                     <Input 
                       type="number"
@@ -980,10 +983,14 @@ const AdminContent = () => {
                       max="100"
                       placeholder="W"
                       className="w-20"
-                      value={bannerForm.aspect_ratio.split(':')[1] || '16'}
+                      value={(() => {
+                        const parts = bannerForm.aspect_ratio.split(':');
+                        return parts.length >= 2 ? parts[1] : '16';
+                      })()}
                       onChange={(e) => {
                         const width = e.target.value || '1';
-                        const height = bannerForm.aspect_ratio.split(':')[2] || '9';
+                        const parts = bannerForm.aspect_ratio.split(':');
+                        const height = parts.length >= 3 ? parts[2] : '9';
                         setBannerForm({...bannerForm, aspect_ratio: `custom:${width}:${height}`});
                       }}
                     />
@@ -994,9 +1001,13 @@ const AdminContent = () => {
                       max="100"
                       placeholder="H"
                       className="w-20"
-                      value={bannerForm.aspect_ratio.split(':')[2] || '9'}
+                      value={(() => {
+                        const parts = bannerForm.aspect_ratio.split(':');
+                        return parts.length >= 3 ? parts[2] : '9';
+                      })()}
                       onChange={(e) => {
-                        const width = bannerForm.aspect_ratio.split(':')[1] || '16';
+                        const parts = bannerForm.aspect_ratio.split(':');
+                        const width = parts.length >= 2 ? parts[1] : '16';
                         const height = e.target.value || '1';
                         setBannerForm({...bannerForm, aspect_ratio: `custom:${width}:${height}`});
                       }}
