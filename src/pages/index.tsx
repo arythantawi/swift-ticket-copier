@@ -17,6 +17,7 @@ import PaymentInfo from '@/components/PaymentInfo';
 import FAQSection from '@/components/FAQSection';
 import Footer from '@/components/Footer';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
+import { CustomerServiceChat } from '@/components/CustomerServiceChat';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -69,6 +70,7 @@ const Index = () => {
       </main>
       <Footer />
       <WhatsAppFloat />
+      <CustomerServiceChat />
     </div>
   );
 };
