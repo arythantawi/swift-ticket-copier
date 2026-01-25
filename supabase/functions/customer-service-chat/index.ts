@@ -136,6 +136,21 @@ Jika pelanggan bertanya tentang:
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       console.error('Gemini API error:', geminiResponse.status, errorText);
+      
+      // Handle rate limiting specifically
+      if (geminiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: 'Mohon maaf, sistem sedang sibuk. Silakan tunggu beberapa detik dan coba lagi, atau hubungi customer service kami via WhatsApp untuk bantuan lebih cepat.',
+            isRateLimited: true
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       throw new Error(`Gemini API error: ${geminiResponse.status}`);
     }
 
@@ -160,7 +175,7 @@ Jika pelanggan bertanya tentang:
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',
         success: false,
-        message: 'Maaf, terjadi kesalahan. Silakan coba lagi atau hubungi customer service kami via WhatsApp.'
+        message: 'Maaf, terjadi kesalahan teknis. Silakan coba lagi dalam beberapa saat atau hubungi customer service kami via WhatsApp.'
       }),
       { 
         status: 500, 
