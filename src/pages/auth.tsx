@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Lock, User, Facebook, Chrome, Linkedin, Loader2 } from 'lucide-react';
 import logo44Trans from '@/assets/logo-44trans.png';
-
 const Auth = () => {
   const [isRightPanelActive, setIsRightPanelActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,101 +13,101 @@ const Auth = () => {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (session) {
         navigate('/');
       }
     };
     checkUser();
   }, [navigate]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email: signInEmail,
-        password: signInPassword,
+        password: signInPassword
       });
-
       if (error) throw error;
-
       toast({
         title: "Berhasil masuk!",
-        description: "Selamat datang kembali",
+        description: "Selamat datang kembali"
       });
       navigate('/');
     } catch (error: any) {
       toast({
         title: "Gagal masuk",
         description: error.message || "Email atau password salah",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const { error } = await supabase.auth.signUp({
+      const {
+        error
+      } = await supabase.auth.signUp({
         email: signUpEmail,
         password: signUpPassword,
         options: {
           data: {
-            full_name: signUpName,
+            full_name: signUpName
           },
-          emailRedirectTo: window.location.origin,
-        },
+          emailRedirectTo: window.location.origin
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Pendaftaran berhasil!",
-        description: "Silakan cek email Anda untuk verifikasi",
+        description: "Silakan cek email Anda untuk verifikasi"
       });
       setIsRightPanelActive(false);
     } catch (error: any) {
       toast({
         title: "Gagal mendaftar",
         description: error.message || "Terjadi kesalahan",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleGoogleAuth = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const {
+        error
+      } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
-        },
+          redirectTo: window.location.origin
+        }
       });
       if (error) throw error;
     } catch (error: any) {
       toast({
         title: "Gagal login dengan Google",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary via-background to-secondary flex justify-center items-center flex-col font-sans py-8 px-4">
+  return <div className="min-h-screen bg-gradient-to-br from-secondary via-background to-secondary flex justify-center items-center flex-col font-sans py-8 px-4">
       {/* Logo */}
       <div className="mb-6 flex items-center gap-3">
         <div className="w-12 h-12 rounded-full border-2 border-primary/50 bg-white p-1 shadow-lg">
@@ -118,38 +117,19 @@ const Auth = () => {
       </div>
 
       {/* Container */}
-      <div 
-        className={`bg-card rounded-xl shadow-2xl relative overflow-hidden w-full max-w-[768px] min-h-[480px] transition-all duration-600 ${
-          isRightPanelActive ? 'right-panel-active' : ''
-        }`}
-        style={{
-          boxShadow: '0 14px 28px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.12)',
-        }}
-      >
+      <div className={`bg-card rounded-xl shadow-2xl relative overflow-hidden w-full max-w-[768px] min-h-[480px] transition-all duration-600 ${isRightPanelActive ? 'right-panel-active' : ''}`} style={{
+      boxShadow: '0 14px 28px rgba(0,0,0,0.15), 0 10px 10px rgba(0,0,0,0.12)'
+    }}>
         {/* Sign Up Form */}
-        <div 
-          className={`absolute top-0 h-full transition-all duration-600 ease-in-out left-0 w-1/2 ${
-            isRightPanelActive 
-              ? 'translate-x-full opacity-100 z-[5] animate-show' 
-              : 'opacity-0 z-[1]'
-          }`}
-        >
+        <div className={`absolute top-0 h-full transition-all duration-600 ease-in-out left-0 w-1/2 ${isRightPanelActive ? 'translate-x-full opacity-100 z-[5] animate-show' : 'opacity-0 z-[1]'}`}>
           <form onSubmit={handleSignUp} className="bg-card flex items-center justify-center flex-col px-8 md:px-12 h-full text-center">
             <h1 className="font-bold text-2xl text-foreground mb-2">Buat Akun</h1>
             
             <div className="flex gap-3 my-4">
-              <button 
-                type="button"
-                onClick={handleGoogleAuth}
-                className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors"
-              >
+              <button type="button" onClick={handleGoogleAuth} className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors">
                 <Chrome className="w-5 h-5 text-muted-foreground" />
               </button>
-              <button 
-                type="button"
-                className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors opacity-50 cursor-not-allowed"
-                disabled
-              >
+              <button type="button" className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors opacity-50 cursor-not-allowed" disabled>
                 <Facebook className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -158,46 +138,20 @@ const Auth = () => {
             
             <div className="relative w-full mt-4">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Nama Lengkap"
-                value={signUpName}
-                onChange={(e) => setSignUpName(e.target.value)}
-                className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
+              <input type="text" placeholder="Nama Lengkap" value={signUpName} onChange={e => setSignUpName(e.target.value)} className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" required />
             </div>
             
             <div className="relative w-full">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="email" 
-                placeholder="Email"
-                value={signUpEmail}
-                onChange={(e) => setSignUpEmail(e.target.value)}
-                className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
+              <input type="email" placeholder="Email" value={signUpEmail} onChange={e => setSignUpEmail(e.target.value)} className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" required />
             </div>
             
             <div className="relative w-full">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="password" 
-                placeholder="Password"
-                value={signUpPassword}
-                onChange={(e) => setSignUpPassword(e.target.value)}
-                className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-                minLength={6}
-              />
+              <input type="password" placeholder="Password" value={signUpPassword} onChange={e => setSignUpPassword(e.target.value)} className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" required minLength={6} />
             </div>
             
-            <button 
-              type="submit"
-              disabled={isLoading}
-              className="rounded-full border border-primary bg-primary text-primary-foreground text-xs font-bold py-3 px-11 uppercase tracking-wider mt-4 transition-transform active:scale-95 hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-            >
+            <button type="submit" disabled={isLoading} className="rounded-full border border-primary bg-primary text-primary-foreground text-xs font-bold py-3 px-11 uppercase tracking-wider mt-4 transition-transform active:scale-95 hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               Daftar
             </button>
@@ -205,64 +159,32 @@ const Auth = () => {
         </div>
 
         {/* Sign In Form */}
-        <div 
-          className={`absolute top-0 h-full transition-all duration-600 ease-in-out left-0 w-1/2 z-[2] ${
-            isRightPanelActive ? 'translate-x-full' : ''
-          }`}
-        >
+        <div className={`absolute top-0 h-full transition-all duration-600 ease-in-out left-0 w-1/2 z-[2] ${isRightPanelActive ? 'translate-x-full' : ''}`}>
           <form onSubmit={handleSignIn} className="bg-card flex items-center justify-center flex-col px-8 md:px-12 h-full text-center">
             <h1 className="font-bold text-2xl text-foreground mb-2">Masuk</h1>
             
             <div className="flex gap-3 my-4">
-              <button 
-                type="button"
-                onClick={handleGoogleAuth}
-                className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors"
-              >
+              <button type="button" onClick={handleGoogleAuth} className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors">
                 <Chrome className="w-5 h-5 text-muted-foreground" />
               </button>
-              <button 
-                type="button"
-                className="border border-border rounded-full w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors opacity-50 cursor-not-allowed"
-                disabled
-              >
-                <Facebook className="w-5 h-5 text-muted-foreground" />
-              </button>
+              
             </div>
             
             <span className="text-xs text-muted-foreground">atau gunakan akun Anda</span>
             
             <div className="relative w-full mt-4">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="email" 
-                placeholder="Email"
-                value={signInEmail}
-                onChange={(e) => setSignInEmail(e.target.value)}
-                className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
+              <input type="email" placeholder="Email" value={signInEmail} onChange={e => setSignInEmail(e.target.value)} className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" required />
             </div>
             
             <div className="relative w-full">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="password" 
-                placeholder="Password"
-                value={signInPassword}
-                onChange={(e) => setSignInPassword(e.target.value)}
-                className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
+              <input type="password" placeholder="Password" value={signInPassword} onChange={e => setSignInPassword(e.target.value)} className="bg-secondary border-none rounded-md px-10 py-3 my-2 w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" required />
             </div>
             
             <a href="#" className="text-sm text-muted-foreground hover:text-primary mt-2">Lupa password?</a>
             
-            <button 
-              type="submit"
-              disabled={isLoading}
-              className="rounded-full border border-primary bg-primary text-primary-foreground text-xs font-bold py-3 px-11 uppercase tracking-wider mt-4 transition-transform active:scale-95 hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-            >
+            <button type="submit" disabled={isLoading} className="rounded-full border border-primary bg-primary text-primary-foreground text-xs font-bold py-3 px-11 uppercase tracking-wider mt-4 transition-transform active:scale-95 hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               Masuk
             </button>
@@ -270,50 +192,26 @@ const Auth = () => {
         </div>
 
         {/* Overlay Container */}
-        <div 
-          className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-600 ease-in-out z-[100] ${
-            isRightPanelActive ? '-translate-x-full' : ''
-          }`}
-        >
-          <div 
-            className={`bg-gradient-to-r from-primary to-accent text-primary-foreground relative -left-full h-full w-[200%] transition-transform duration-600 ease-in-out ${
-              isRightPanelActive ? 'translate-x-1/2' : 'translate-x-0'
-            }`}
-          >
+        <div className={`absolute top-0 left-1/2 w-1/2 h-full overflow-hidden transition-transform duration-600 ease-in-out z-[100] ${isRightPanelActive ? '-translate-x-full' : ''}`}>
+          <div className={`bg-gradient-to-r from-primary to-accent text-primary-foreground relative -left-full h-full w-[200%] transition-transform duration-600 ease-in-out ${isRightPanelActive ? 'translate-x-1/2' : 'translate-x-0'}`}>
             {/* Left Panel */}
-            <div 
-              className={`absolute flex items-center justify-center flex-col px-8 text-center top-0 h-full w-1/2 transition-transform duration-600 ease-in-out ${
-                isRightPanelActive ? 'translate-x-0' : '-translate-x-[20%]'
-              }`}
-            >
+            <div className={`absolute flex items-center justify-center flex-col px-8 text-center top-0 h-full w-1/2 transition-transform duration-600 ease-in-out ${isRightPanelActive ? 'translate-x-0' : '-translate-x-[20%]'}`}>
               <h1 className="font-bold text-2xl mb-4">Selamat Datang!</h1>
               <p className="text-sm leading-5 tracking-wide mb-6 opacity-90">
                 Untuk tetap terhubung dengan kami, silakan masuk dengan akun Anda
               </p>
-              <button 
-                type="button"
-                onClick={() => setIsRightPanelActive(false)}
-                className="rounded-full bg-transparent border border-white text-white text-xs font-bold py-3 px-11 uppercase tracking-wider transition-all hover:bg-white/10 active:scale-95"
-              >
+              <button type="button" onClick={() => setIsRightPanelActive(false)} className="rounded-full bg-transparent border border-white text-white text-xs font-bold py-3 px-11 uppercase tracking-wider transition-all hover:bg-white/10 active:scale-95">
                 Masuk
               </button>
             </div>
 
             {/* Right Panel */}
-            <div 
-              className={`absolute flex items-center justify-center flex-col px-8 text-center top-0 h-full w-1/2 right-0 transition-transform duration-600 ease-in-out ${
-                isRightPanelActive ? 'translate-x-[20%]' : 'translate-x-0'
-              }`}
-            >
+            <div className={`absolute flex items-center justify-center flex-col px-8 text-center top-0 h-full w-1/2 right-0 transition-transform duration-600 ease-in-out ${isRightPanelActive ? 'translate-x-[20%]' : 'translate-x-0'}`}>
               <h1 className="font-bold text-2xl mb-4">Halo, Sobat!</h1>
               <p className="text-sm leading-5 tracking-wide mb-6 opacity-90">
                 Masukkan data Anda dan mulai perjalanan bersama kami
               </p>
-              <button 
-                type="button"
-                onClick={() => setIsRightPanelActive(true)}
-                className="rounded-full bg-transparent border border-white text-white text-xs font-bold py-3 px-11 uppercase tracking-wider transition-all hover:bg-white/10 active:scale-95"
-              >
+              <button type="button" onClick={() => setIsRightPanelActive(true)} className="rounded-full bg-transparent border border-white text-white text-xs font-bold py-3 px-11 uppercase tracking-wider transition-all hover:bg-white/10 active:scale-95">
                 Daftar
               </button>
             </div>
@@ -322,10 +220,7 @@ const Auth = () => {
       </div>
 
       {/* Back to Home */}
-      <button 
-        onClick={() => navigate('/')}
-        className="mt-6 text-muted-foreground hover:text-primary text-sm transition-colors"
-      >
+      <button onClick={() => navigate('/')} className="mt-6 text-muted-foreground hover:text-primary text-sm transition-colors">
         ← Kembali ke Beranda
       </button>
 
@@ -344,8 +239,6 @@ const Auth = () => {
           animation: show 0.6s;
         }
       `}</style>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
